@@ -17,7 +17,35 @@ mkdir -p data/ckb
 ./start.sh
 ```
 
-That's it. P2P listens on port **8228**.
+That's it. P2P listens on port **8228**. The HTTP gateway listens on port **3000**.
+
+## HTTP gateway
+
+The gateway container shares the Fiber container's network, so it can reach Fiber RPC on `127.0.0.1:8227` without exposing RPC to the host.
+
+```bash
+curl http://localhost:3000/health
+curl http://localhost:3000/node-info
+curl http://localhost:3000/list-channels
+curl http://localhost:3000/list-peers
+```
+
+Optional query params for `/list-channels`:
+
+- `include_closed=true` — include closed channels
+- `peer_id=<pubkey>` — filter by peer
+
+Fiber RPC is not exposed publicly — only the gateway port is. Add authentication to the gateway before deploying to production.
+
+### Local development (without Docker)
+
+If the Fiber node is already running and port 8227 is forwarded to localhost:
+
+```bash
+cd server
+bun install
+FIBER_RPC_URL=http://127.0.0.1:8227 bun run dev
+```
 
 ## Network
 
@@ -33,12 +61,11 @@ Edit `config/testnet.yml` or `config/mainnet.yml` to customize your node (e.g. a
 
 ```bash
 docker compose logs -f                    # follow logs
+docker compose logs -f gateway            # gateway logs only
 docker compose exec fiber fnn-cli info    # node info
 docker compose exec fiber fnn-cli channel list_channels
 docker compose down                       # stop
 ```
-
-RPC runs on `127.0.0.1:8227` inside the container — use `docker compose exec` to reach it.
 
 ## Data
 
@@ -68,4 +95,4 @@ When a new [Fiber release](https://github.com/nervosnetwork/fiber/releases) is p
 
 Your config (`config/testnet.yml` or `config/mainnet.yml`) and wallet key (`data/ckb/key`) stay as-is — only the container image changes. Newer Fiber versions migrate the database automatically on startup.
 
-If you also `git pull` this repo, you may get updated config templates — review `config/*.yml` for any new options, but you don't need to rebuild anything.
+If you also `git pull` this repo, you may get updated config templates — review `config/*.yml` for any new options, but you may need to rebuild the gateway with `docker compose up -d --build`.

@@ -6,5 +6,17 @@ services:
     env_file: .env
     ports:
       - "8228:8228"
+      - "${GATEWAY_PORT:-3000}:${GATEWAY_PORT:-3000}"
     volumes:
       - ./data:/fiber
+
+  gateway:
+    build: ./server
+    container_name: fiberflow-gateway-api
+    restart: unless-stopped
+    network_mode: "service:fiber"
+    depends_on:
+      - fiber
+    environment:
+      PORT: ${GATEWAY_PORT:-3000}
+      FIBER_RPC_URL: http://127.0.0.1:8227
