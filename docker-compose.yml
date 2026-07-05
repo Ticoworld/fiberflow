@@ -1,0 +1,10 @@
+services:
+  fiber:
+    image: nervos/fiber:${FIBER_VERSION:-0.9.0-rc3}
+    container_name: fiberflow-gateway
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "8228:8228"
+    volumes:
+      - ./data:/fiber
