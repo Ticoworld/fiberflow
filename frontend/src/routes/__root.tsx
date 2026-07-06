@@ -6,6 +6,8 @@ import {
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
+import { Toaster } from 'sonner'
+
 import { TooltipProvider } from "@/components/ui/tooltip"
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
@@ -66,6 +68,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           ]}
         />
         </TooltipProvider>
+        <Toaster richColors position="top-center" />
         <Scripts />
 
       </body>
