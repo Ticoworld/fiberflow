@@ -17,17 +17,29 @@ bun run dev
 
 Started automatically by `./start.sh` from the repo root. Uses `server/.env` for database and auth config.
 
-## API routes
+## Routes
+
+### `/api/*` — frontend ↔ backend
+
+| Route | Description |
+|-------|-------------|
+| `GET/POST /api/auth/*` | Better Auth endpoints |
+| `GET /api/todos` | List todos |
+| `POST /api/todos` | Create todo |
+
+### `/rpc/*` — server ↔ Fiber node
+
+| Route | Description |
+|-------|-------------|
+| `GET /rpc/node-info` | Fiber node info |
+| `GET /rpc/list-channels` | Fiber channels |
+| `GET /rpc/list-peers` | Fiber peers |
+
+### Other
 
 | Route | Description |
 |-------|-------------|
 | `GET /health` | Health check |
-| `GET/POST /api/auth/*` | Better Auth endpoints |
-| `GET /api/todos` | List todos |
-| `POST /api/todos` | Create todo |
-| `GET /node-info` | Fiber node info |
-| `GET /list-channels` | Fiber channels |
-| `GET /list-peers` | Fiber peers |
 
 ## Database scripts
 

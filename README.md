@@ -25,12 +25,13 @@ The gateway container shares the Fiber container's network, so it can reach Fibe
 
 ```bash
 curl http://localhost:3000/health
-curl http://localhost:3000/node-info
-curl http://localhost:3000/list-channels
-curl http://localhost:3000/list-peers
+curl http://localhost:3000/api/todos
+curl http://localhost:3000/rpc/node-info
+curl http://localhost:3000/rpc/list-channels
+curl http://localhost:3000/rpc/list-peers
 ```
 
-Optional query params for `/list-channels`:
+Optional query params for `/rpc/list-channels`:
 
 - `include_closed=true` — include closed channels
 - `peer_id=<pubkey>` — filter by peer
