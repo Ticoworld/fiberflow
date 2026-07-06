@@ -1,30 +1,40 @@
-HTTP gateway that proxies requests to the Fiber node JSON-RPC.
+HTTP gateway that proxies Fiber RPC, serves Better Auth, and connects to Neon via Drizzle.
 
-Built with [Bun](https://bun.sh) and [Hono](https://hono.dev).
+Built with [Bun](https://bun.sh), [Hono](https://hono.dev), [Drizzle ORM](https://orm.drizzle.team), and [Better Auth](https://better-auth.com).
 
-## Docker (recommended)
-
-Started automatically by `./start.sh` from the repo root.
+## Setup
 
 ```bash
-curl http://localhost:3000/node-info
-curl http://localhost:3000/list-channels
-```
+cp .env.example .env
+# set DATABASE_URL, BETTER_AUTH_SECRET (bunx @better-auth/cli secret)
 
-## Local development
-
-Requires [Bun](https://bun.sh) and a running Fiber node with RPC reachable at `127.0.0.1:8227`.
-
-```bash
 bun install
-FIBER_RPC_URL=http://127.0.0.1:8227 bun run dev
+bun run db:push
+bun run dev
 ```
 
-## Routes
+## Docker
 
-| Route | Fiber RPC method |
-|-------|------------------|
-| `GET /health` | — |
-| `GET /node-info` | `node_info` |
-| `GET /list-channels` | `list_channels` |
-| `GET /list-peers` | `list_peers` |
+Started automatically by `./start.sh` from the repo root. Uses `server/.env` for database and auth config.
+
+## API routes
+
+| Route | Description |
+|-------|-------------|
+| `GET /health` | Health check |
+| `GET/POST /api/auth/*` | Better Auth endpoints |
+| `GET /api/todos` | List todos |
+| `POST /api/todos` | Create todo |
+| `GET /node-info` | Fiber node info |
+| `GET /list-channels` | Fiber channels |
+| `GET /list-peers` | Fiber peers |
+
+## Database scripts
+
+```bash
+bun run db:push      # push schema to Neon
+bun run db:generate  # generate Drizzle migrations
+bun run db:migrate   # run migrations
+bun run db:studio    # Drizzle Studio
+bun run auth:generate # regenerate Better Auth schema
+```

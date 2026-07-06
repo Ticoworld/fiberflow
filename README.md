@@ -39,12 +39,23 @@ Fiber RPC is not exposed publicly — only the gateway port is. Add authenticati
 
 ### Local development (without Docker)
 
-If the Fiber node is already running and port 8227 is forwarded to localhost:
+**Gateway server** (Fiber RPC + Drizzle + Better Auth):
 
 ```bash
 cd server
+cp .env.example .env   # set DATABASE_URL, BETTER_AUTH_SECRET
 bun install
-FIBER_RPC_URL=http://127.0.0.1:8227 bun run dev
+bun run db:push
+bun run dev
+```
+
+**Frontend** (runs on port 5173):
+
+```bash
+cd frontend
+cp .env.example .env.local   # VITE_API_URL=http://localhost:3000
+bun install
+bun run dev
 ```
 
 ## Network

@@ -17,6 +17,7 @@ services:
     network_mode: "service:fiber"
     depends_on:
       - fiber
+    env_file: server/.env
     environment:
       PORT: ${GATEWAY_PORT:-3000}
       FIBER_RPC_URL: http://127.0.0.1:8227
