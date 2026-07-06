@@ -31,7 +31,7 @@ export const Route = createFileRoute('/signup')({
   beforeLoad: async () => {
     const { data } = await authClient.getSession()
     if (data?.user) {
-      throw redirect({ to: '/' })
+      throw redirect({ to: '/dashboard' })
     }
   },
   component: SignupPage,
@@ -67,7 +67,7 @@ function SignupPage() {
     }
 
     toast.success('Account created successfully')
-    await navigate({ to: '/' })
+    await navigate({ to: '/dashboard' })
   }
 
   return (

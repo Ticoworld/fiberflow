@@ -28,7 +28,7 @@ export const Route = createFileRoute('/login')({
   beforeLoad: async () => {
     const { data } = await authClient.getSession()
     if (data?.user) {
-      throw redirect({ to: '/' })
+      throw redirect({ to: '/dashboard' })
     }
   },
   component: LoginPage,
@@ -62,7 +62,7 @@ function LoginPage() {
     }
 
     toast.success('Signed in successfully')
-    await navigate({ to: '/' })
+    await navigate({ to: '/dashboard' })
   }
 
   return (
