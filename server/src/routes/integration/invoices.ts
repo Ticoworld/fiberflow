@@ -2,11 +2,33 @@ import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 
 import {
-  type CreateInvoiceInput,
   createInvoice,
   getInvoiceForStore,
-  listInvoicesForStore,
+  listInvoicesForStorePaginated,
 } from '../../lib/invoice-service'
+import {
+  beginIdempotentRequest,
+  completeIdempotentRequest,
+  hashRequestBody,
+  normalizeIdempotencyKey,
+  releaseIdempotentRequest,
+} from '../../lib/idempotency'
+import {
+  fromHttpException,
+  idempotencyConflict,
+  invalidRequest,
+  isUniqueViolation,
+  MerchantApiException,
+  notFound,
+} from '../../lib/merchant-errors'
+import {
+  parseMerchantCreateInvoiceInput,
+  parseMerchantStatusFilter,
+  parsePaginationLimit,
+  parseStartingAfter,
+  serializeMerchantInvoice,
+  serializeMerchantInvoiceList,
+} from '../../lib/merchant-serializer'
 import { type ApiKeyVariables, requireApiKey } from '../../middleware/api-key-auth'
 
 export const invoiceRoutes = new Hono<{ Variables: ApiKeyVariables }>()
@@ -15,8 +37,17 @@ invoiceRoutes.use('*', requireApiKey)
 
 invoiceRoutes.get('/', async (c) => {
   const storeId = c.get('storeId')
-  const invoices = await listInvoicesForStore(storeId)
-  return c.json({ invoices })
+  const limit = parsePaginationLimit(c.req.query('limit'))
+  const startingAfter = parseStartingAfter(c.req.query('starting_after'))
+  const status = parseMerchantStatusFilter(c.req.query('status'))
+
+  const result = await listInvoicesForStorePaginated(storeId, {
+    limit,
+    startingAfter,
+    status,
+  })
+
+  return c.json(serializeMerchantInvoiceList(result.invoices, result.hasMore))
 })
 
 invoiceRoutes.get('/:id', async (c) => {
@@ -24,28 +55,95 @@ invoiceRoutes.get('/:id', async (c) => {
   const invoiceId = Number(c.req.param('id'))
 
   if (!Number.isInteger(invoiceId) || invoiceId <= 0) {
-    throw new HTTPException(400, { message: 'Invalid invoice id' })
+    invalidRequest('Invalid invoice id.', 'id', 'invalid_invoice_id')
   }
 
   const record = await getInvoiceForStore(storeId, invoiceId)
 
   if (!record) {
-    throw new HTTPException(404, { message: 'Invoice not found' })
+    notFound('Invoice not found.', 'invoice_not_found')
   }
 
-  return c.json({ invoice: record })
+  return c.json({ invoice: serializeMerchantInvoice(record) })
 })
 
 invoiceRoutes.post('/', async (c) => {
   const storeId = c.get('storeId')
-  const body = await c.req.json<Partial<CreateInvoiceInput>>()
+  const idempotencyKey = normalizeIdempotencyKey(c.req.header('Idempotency-Key'))
+  const rawBodyText = await c.req.text()
+  const requestHash = hashRequestBody(rawBodyText)
 
-  const created = await createInvoice(storeId, {
-    amountInUSD: body.amountInUSD ?? -1,
-    orderId: body.orderId ?? '',
-    customerEmail: body.customerEmail ?? '',
-    description: body.description,
-  })
+  let rawBody: Record<string, unknown>
+  try {
+    const parsed: unknown = rawBodyText ? JSON.parse(rawBodyText) : {}
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      invalidRequest('Request body must be a JSON object.', undefined, 'invalid_json')
+    }
+    rawBody = parsed as Record<string, unknown>
+  } catch {
+    invalidRequest('Malformed JSON in request body.', undefined, 'invalid_json')
+  }
+
+  const input = parseMerchantCreateInvoiceInput(rawBody)
+
+  if (idempotencyKey) {
+    const idempotency = await beginIdempotentRequest(storeId, idempotencyKey, requestHash)
+
+    if (idempotency.action === 'conflict') {
+      idempotencyConflict(
+        'Idempotency-Key was used with a different request body.',
+        'idempotency_key_mismatch',
+      )
+    }
+
+    if (idempotency.action === 'replay') {
+      return c.json(idempotency.body, idempotency.status as 201)
+    }
+
+    const created = await createMerchantInvoice(storeId, input, async () => {
+      await releaseIdempotentRequest(storeId, idempotencyKey)
+    })
+    const body = { invoice: created }
+
+    await completeIdempotentRequest(storeId, idempotencyKey, 201, body)
+
+    return c.json(body, 201)
+  }
+
+  const created = await createMerchantInvoice(storeId, input)
 
   return c.json({ invoice: created }, 201)
 })
+
+async function createMerchantInvoice(
+  storeId: string,
+  input: Parameters<typeof createInvoice>[1],
+  onFailure?: () => Promise<void>,
+) {
+  try {
+    const created = await createInvoice(storeId, input)
+    return serializeMerchantInvoice(created)
+  } catch (error) {
+    if (onFailure) {
+      await onFailure()
+    }
+
+    if (error instanceof MerchantApiException) {
+      throw error
+    }
+
+    if (error instanceof HTTPException) {
+      throw fromHttpException(error)
+    }
+
+    if (isUniqueViolation(error)) {
+      invalidRequest(
+        `An invoice with order_id '${input.orderId}' already exists.`,
+        'order_id',
+        'order_id_already_exists',
+      )
+    }
+
+    throw error
+  }
+}

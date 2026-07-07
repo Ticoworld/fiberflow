@@ -1,8 +1,8 @@
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, lt, type SQL } from 'drizzle-orm'
 import { HTTPException } from 'hono/http-exception'
 
 import { db } from '../db'
-import { invoice } from '../db/schema'
+import { type InvoiceStatus, invoice } from '../db/schema'
 import { fiberRpc } from '../fiber-rpc'
 import {
   type FiberNewInvoiceParams,
@@ -82,6 +82,47 @@ export async function createInvoice(storeId: string, body: CreateInvoiceInput) {
     .returning()
 
   return created
+}
+
+export type ListInvoicesOptions = {
+  limit: number
+  startingAfter?: number
+  status?: InvoiceStatus
+}
+
+export type ListInvoicesResult = {
+  invoices: Awaited<ReturnType<typeof syncInvoices>>
+  hasMore: boolean
+}
+
+export async function listInvoicesForStorePaginated(
+  storeId: string,
+  options: ListInvoicesOptions,
+): Promise<ListInvoicesResult> {
+  const conditions: SQL[] = [eq(invoice.storeId, storeId)]
+
+  if (options.startingAfter !== undefined) {
+    conditions.push(lt(invoice.id, options.startingAfter))
+  }
+
+  if (options.status) {
+    conditions.push(eq(invoice.status, options.status))
+  }
+
+  const records = await db
+    .select()
+    .from(invoice)
+    .where(and(...conditions))
+    .orderBy(desc(invoice.id))
+    .limit(options.limit + 1)
+
+  const hasMore = records.length > options.limit
+  const page = hasMore ? records.slice(0, options.limit) : records
+
+  return {
+    invoices: await syncInvoices(page),
+    hasMore,
+  }
 }
 
 export async function listInvoicesForStore(storeId: string) {
