@@ -4,6 +4,7 @@ import { user } from "./auth";
 export const store = pgTable('store', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
+  imageUrl: text('image_url'),
   createdBy: text('created_by').notNull().references(() => user.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at')
