@@ -19,21 +19,28 @@ export const invoiceStatusEnum = pgEnum('invoice_status', [
   'Cancelled',
 ])
 
+export const invoiceCurrencyEnum = pgEnum('invoice_currency', [
+  'fibb',
+  'fibt',
+  "fibd"
+])
+
 export const invoice = pgTable(
   'invoice',
   {
     id: serial('id').primaryKey(),
-    paymentHash: text('payment_hash').notNull().unique(),
-    invoiceAddress: text('invoice_address').notNull(),
     amount: text('amount').notNull(),
+    currency: invoiceCurrencyEnum('currency').notNull(),
     amountInUSD: bigint('amount_in_usd', { mode: 'number' }).notNull(),
-    currency: text('currency').notNull(),
     description: text('description'),
     expirySeconds: bigint('expiry_seconds', { mode: 'number' }).notNull(),
     expiresAt: timestamp('expires_at').notNull(),
+    paymentHash: text('payment_hash').unique(),
+    invoiceAddress: text('invoice_address'),
     status: invoiceStatusEnum('status').notNull().default('Open'),
-    udtTypeScript: text('udt_type_script'),
     storeId: uuid('store_id').references(() => store.id, { onDelete: 'cascade' }),
+    orderId: text('order_id').unique().notNull(),
+    customerEmail: text('customer_email').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
