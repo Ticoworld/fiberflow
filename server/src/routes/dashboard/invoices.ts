@@ -1,4 +1,5 @@
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
+import { HTTPException } from 'hono/http-exception'
 
 import {
   type CreateInvoiceInput,
@@ -8,13 +9,30 @@ import {
 import { requireStoreForUser } from '../../lib/store'
 import { type AuthVariables, requireAuth } from '../../middleware/auth'
 
-export const invoiceRoutes = new Hono<{ Variables: AuthVariables }>()
+type InvoiceRouteEnv = {
+  Variables: AuthVariables
+  Param: {
+    storeId: string
+  }
+}
+
+function getStoreId(c: Context<InvoiceRouteEnv>): string {
+  const storeId = c.req.param('storeId')
+
+  if (!storeId) {
+    throw new HTTPException(400, { message: 'Store ID is required' })
+  }
+
+  return storeId
+}
+
+export const invoiceRoutes = new Hono<InvoiceRouteEnv>()
 
 invoiceRoutes.use('*', requireAuth)
 
 invoiceRoutes.get('/', async (c) => {
   const userId = c.get('userId')
-  const storeId = c.req.param('storeId')
+  const storeId = getStoreId(c)
 
   await requireStoreForUser(storeId, userId)
 
@@ -24,7 +42,7 @@ invoiceRoutes.get('/', async (c) => {
 
 invoiceRoutes.post('/', async (c) => {
   const userId = c.get('userId')
-  const storeId = c.req.param('storeId')
+  const storeId = getStoreId(c)
 
   await requireStoreForUser(storeId, userId)
 
@@ -33,10 +51,10 @@ invoiceRoutes.post('/', async (c) => {
   const created = await createInvoice(storeId, {
     amount: body.amount ?? '',
     amountInUSD: body.amountInUSD ?? -1,
-    currency: body.currency ?? '',
+    orderId: body.orderId ?? '',
+    customerEmail: body.customerEmail ?? '',
     description: body.description,
     expirySeconds: body.expirySeconds,
-    udtTypeScript: body.udtTypeScript,
     payment_preimage: body.payment_preimage,
     payment_hash: body.payment_hash,
     allow_mpp: body.allow_mpp,

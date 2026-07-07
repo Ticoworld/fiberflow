@@ -2,27 +2,31 @@ import { apiFetch } from '#/lib/api.ts'
 
 export type InvoiceStatus = 'Open' | 'Received' | 'Paid' | 'Expired' | 'Cancelled'
 
+export type InvoiceCurrency = 'fibb' | 'fibt' | 'fibd'
+
 export type Invoice = {
   id: number
-  paymentHash: string
-  invoiceAddress: string
   amount: string
+  currency: InvoiceCurrency
   amountInUSD: number
-  currency: string
   description: string | null
   expirySeconds: number
   expiresAt: string
+  paymentHash: string | null
+  invoiceAddress: string | null
   status: InvoiceStatus
-  udtTypeScript: string | null
   storeId: string | null
+  orderId: string
+  customerEmail: string
   createdAt: string
   updatedAt: string
 }
 
 export type CreateInvoiceInput = {
   amount: string
-  amountInUSD?: number
-  currency: string
+  amountInUSD: number
+  orderId: string
+  customerEmail: string
   description?: string
   expirySeconds?: number
 }
@@ -54,10 +58,7 @@ export async function createInvoice(
   const response = await apiFetch(`/api/stores/${encodeURIComponent(storeId)}/invoices`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      amountInUSD: 0,
-      ...input,
-    }),
+    body: JSON.stringify(input),
   })
 
   if (!response.ok) {

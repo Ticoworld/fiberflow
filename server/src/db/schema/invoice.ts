@@ -33,8 +33,7 @@ export const invoice = pgTable(
     currency: invoiceCurrencyEnum('currency').notNull(),
     amountInUSD: bigint('amount_in_usd', { mode: 'number' }).notNull(),
     description: text('description'),
-    expirySeconds: bigint('expiry_seconds', { mode: 'number' }).notNull(),
-    expiresAt: timestamp('expires_at').notNull(),
+    expirySeconds: bigint('expiry_seconds', { mode: 'number' }).notNull().default(7884000), // 91 days
     paymentHash: text('payment_hash').unique(),
     invoiceAddress: text('invoice_address'),
     status: invoiceStatusEnum('status').notNull().default('Open'),
@@ -50,7 +49,6 @@ export const invoice = pgTable(
   (table) => [
     index('invoice_status_idx').on(table.status),
     index('invoice_store_id_idx').on(table.storeId),
-    index('invoice_expires_at_idx').on(table.expiresAt),
   ],
 )
 
@@ -58,3 +56,4 @@ export type Invoice = typeof invoice.$inferSelect
 export type NewInvoice = typeof invoice.$inferInsert
 
 export type InvoiceStatus = (typeof invoiceStatusEnum.enumValues)[number]
+export type InvoiceCurrency = (typeof invoiceCurrencyEnum.enumValues)[number]

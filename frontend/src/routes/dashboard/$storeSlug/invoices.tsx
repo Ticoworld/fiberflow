@@ -29,6 +29,7 @@ import {
 } from '#/components/ui/empty.tsx'
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -43,6 +44,7 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table.tsx'
+import { fetchFiberConfig } from '#/lib/fiber-config-api.ts'
 import {
   type Invoice,
   type InvoiceStatus,
@@ -53,8 +55,11 @@ import { fetchStoreBySlug } from '#/lib/stores-api.ts'
 
 const createInvoiceSchema = z.object({
   amount: z.string().min(1, 'Amount is required'),
-  currency: z.string().min(1, 'Currency is required'),
+  amountInUSD: z.coerce.number().min(0, 'Amount in USD must be 0 or greater'),
+  orderId: z.string().min(1, 'Order ID is required'),
+  customerEmail: z.string().email('Enter a valid email address'),
   description: z.string().optional(),
+  expirySeconds: z.coerce.number().int().positive().optional(),
 })
 
 type CreateInvoiceFormValues = z.infer<typeof createInvoiceSchema>
@@ -64,8 +69,11 @@ const storeRouteApi = getRouteApi('/dashboard/$storeSlug')
 export const Route = createFileRoute('/dashboard/$storeSlug/invoices')({
   loader: async ({ params }) => {
     const store = await fetchStoreBySlug(params.storeSlug)
-    const invoices = await fetchInvoices(store.id)
-    return { invoices }
+    const [invoices, fiberConfig] = await Promise.all([
+      fetchInvoices(store.id),
+      fetchFiberConfig(),
+    ])
+    return { invoices, fiberConfig }
   },
   component: InvoicesPage,
 })
@@ -88,9 +96,13 @@ function invoiceStatusVariant(status: InvoiceStatus) {
   }
 }
 
+function formatCurrencyLabel(currency: Invoice['currency']) {
+  return currency.toUpperCase()
+}
+
 function InvoicesPage() {
   const { store } = storeRouteApi.useLoaderData()
-  const initialInvoices = Route.useLoaderData().invoices
+  const { invoices: initialInvoices, fiberConfig } = Route.useLoaderData()
   const [invoices, setInvoices] = useState(initialInvoices)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -99,8 +111,11 @@ function InvoicesPage() {
     resolver: zodResolver(createInvoiceSchema),
     defaultValues: {
       amount: '',
-      currency: 'CKB',
+      amountInUSD: 0,
+      orderId: '',
+      customerEmail: '',
       description: '',
+      expirySeconds: 3600,
     },
   })
 
@@ -110,8 +125,11 @@ function InvoicesPage() {
     try {
       const invoice = await createInvoice(store.id, {
         amount: values.amount,
-        currency: values.currency,
+        amountInUSD: values.amountInUSD,
+        orderId: values.orderId.trim(),
+        customerEmail: values.customerEmail.trim(),
         description: values.description?.trim() || undefined,
+        expirySeconds: values.expirySeconds,
       })
 
       setInvoices((current) => [invoice, ...current])
@@ -129,7 +147,7 @@ function InvoicesPage() {
     <>
       <DashboardHeader
         title="Invoices"
-        description={`Manage payment invoices for ${store.name}`}
+        description={`Manage payment invoices for ${store.name} on ${fiberConfig.networkLabel}`}
       />
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
         <div className="flex items-center justify-end">
@@ -140,7 +158,7 @@ function InvoicesPage() {
                 New invoice
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle>Create invoice</DialogTitle>
                 <DialogDescription>
@@ -149,26 +167,80 @@ function InvoicesPage() {
               </DialogHeader>
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 <FieldGroup>
+                  <Field>
+                    <FieldLabel>Network currency</FieldLabel>
+                    <Input
+                      readOnly
+                      value={`${formatCurrencyLabel(fiberConfig.invoiceCurrency)} (${fiberConfig.networkLabel})`}
+                    />
+                    <FieldDescription>
+                      Set by FIBER_NETWORK in your server environment (
+                      {fiberConfig.fiberNetwork} → {fiberConfig.invoiceCurrency}).
+                    </FieldDescription>
+                  </Field>
+
+                  <Field data-invalid={!!form.formState.errors.orderId}>
+                    <FieldLabel htmlFor="orderId">Order ID</FieldLabel>
+                    <Input
+                      id="orderId"
+                      placeholder="order_12345"
+                      aria-invalid={!!form.formState.errors.orderId}
+                      {...form.register('orderId')}
+                    />
+                    <FieldDescription>Your unique reference for this order.</FieldDescription>
+                    <FieldError errors={[form.formState.errors.orderId]} />
+                  </Field>
+
+                  <Field data-invalid={!!form.formState.errors.customerEmail}>
+                    <FieldLabel htmlFor="customerEmail">Customer email</FieldLabel>
+                    <Input
+                      id="customerEmail"
+                      type="email"
+                      placeholder="customer@example.com"
+                      aria-invalid={!!form.formState.errors.customerEmail}
+                      {...form.register('customerEmail')}
+                    />
+                    <FieldError errors={[form.formState.errors.customerEmail]} />
+                  </Field>
+
                   <Field data-invalid={!!form.formState.errors.amount}>
-                    <FieldLabel htmlFor="amount">Amount</FieldLabel>
+                    <FieldLabel htmlFor="amount">Amount (shannons)</FieldLabel>
                     <Input
                       id="amount"
                       placeholder="100000000"
                       aria-invalid={!!form.formState.errors.amount}
                       {...form.register('amount')}
                     />
+                    <FieldDescription>1 CKB = 10⁸ shannons.</FieldDescription>
                     <FieldError errors={[form.formState.errors.amount]} />
                   </Field>
 
-                  <Field data-invalid={!!form.formState.errors.currency}>
-                    <FieldLabel htmlFor="currency">Currency</FieldLabel>
+                  <Field data-invalid={!!form.formState.errors.amountInUSD}>
+                    <FieldLabel htmlFor="amountInUSD">Amount in USD</FieldLabel>
                     <Input
-                      id="currency"
-                      placeholder="CKB"
-                      aria-invalid={!!form.formState.errors.currency}
-                      {...form.register('currency')}
+                      id="amountInUSD"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="10.00"
+                      aria-invalid={!!form.formState.errors.amountInUSD}
+                      {...form.register('amountInUSD')}
                     />
-                    <FieldError errors={[form.formState.errors.currency]} />
+                    <FieldError errors={[form.formState.errors.amountInUSD]} />
+                  </Field>
+
+                  <Field data-invalid={!!form.formState.errors.expirySeconds}>
+                    <FieldLabel htmlFor="expirySeconds">Expiry (seconds)</FieldLabel>
+                    <Input
+                      id="expirySeconds"
+                      type="number"
+                      min={1}
+                      placeholder="3600"
+                      aria-invalid={!!form.formState.errors.expirySeconds}
+                      {...form.register('expirySeconds')}
+                    />
+                    <FieldDescription>Defaults to 3600 seconds (1 hour).</FieldDescription>
+                    <FieldError errors={[form.formState.errors.expirySeconds]} />
                   </Field>
 
                   <Field data-invalid={!!form.formState.errors.description}>
@@ -233,25 +305,29 @@ function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>ID</TableHead>
+          <TableHead>Order ID</TableHead>
+          <TableHead>Customer</TableHead>
           <TableHead>Amount</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead>Description</TableHead>
+          <TableHead>Expires</TableHead>
           <TableHead>Created</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {invoices.map((invoice) => (
           <TableRow key={invoice.id}>
-            <TableCell className="font-medium">#{invoice.id}</TableCell>
+            <TableCell className="font-medium">{invoice.orderId}</TableCell>
+            <TableCell className="max-w-[200px] truncate text-muted-foreground">
+              {invoice.customerEmail}
+            </TableCell>
             <TableCell>
-              {invoice.amount} {invoice.currency}
+              {invoice.amount} {formatCurrencyLabel(invoice.currency)}
             </TableCell>
             <TableCell>
               <Badge variant={invoiceStatusVariant(invoice.status)}>{invoice.status}</Badge>
             </TableCell>
-            <TableCell className="max-w-[240px] truncate text-muted-foreground">
-              {invoice.description ?? '—'}
+            <TableCell className="text-muted-foreground">
+              {format(new Date(invoice.expiresAt), 'MMM d, yyyy HH:mm')}
             </TableCell>
             <TableCell className="text-muted-foreground">
               {format(new Date(invoice.createdAt), 'MMM d, yyyy HH:mm')}

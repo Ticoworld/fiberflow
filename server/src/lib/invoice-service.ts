@@ -4,14 +4,15 @@ import { HTTPException } from 'hono/http-exception'
 import { db } from '../db'
 import { invoice } from '../db/schema'
 import { fiberRpc } from '../fiber-rpc'
+import { formatRpcCurrency, getInvoiceCurrency } from './fiber-network'
 
 export type CreateInvoiceInput = {
   amount: string
   amountInUSD: number
-  currency: string
+  orderId: string
+  customerEmail: string
   description?: string
   expirySeconds?: number
-  udtTypeScript?: string
   payment_preimage?: string
   payment_hash?: string
   allow_mpp?: boolean
@@ -32,28 +33,32 @@ export function validateCreateInvoiceInput(body: Partial<CreateInvoiceInput>) {
     throw new HTTPException(400, { message: 'amount is required' })
   }
 
-  if (!body.currency?.trim()) {
-    throw new HTTPException(400, { message: 'currency is required' })
-  }
-
   if (body.amountInUSD === undefined || body.amountInUSD < 0) {
     throw new HTTPException(400, { message: 'amountInUSD is required' })
+  }
+
+  if (!body.orderId?.trim()) {
+    throw new HTTPException(400, { message: 'orderId is required' })
+  }
+
+  if (!body.customerEmail?.trim()) {
+    throw new HTTPException(400, { message: 'customerEmail is required' })
   }
 }
 
 export async function createInvoice(storeId: string, body: CreateInvoiceInput) {
   validateCreateInvoiceInput(body)
 
-  const expirySeconds = body.expirySeconds ?? 3600
+  const currency = getInvoiceCurrency()
+  const expirySeconds = body.expirySeconds ?? 7884000 // 91 days
 
   const rpcParams: Record<string, unknown> = {
     amount: body.amount,
-    currency: body.currency,
+    currency: formatRpcCurrency(currency),
     expiry: expirySeconds,
   }
 
   if (body.description) rpcParams.description = body.description
-  if (body.udtTypeScript) rpcParams.udt_type_script = body.udtTypeScript
   if (body.payment_preimage) rpcParams.payment_preimage = body.payment_preimage
   if (body.payment_hash) rpcParams.payment_hash = body.payment_hash
   if (body.allow_mpp !== undefined) rpcParams.allow_mpp = body.allow_mpp
@@ -62,7 +67,6 @@ export async function createInvoice(storeId: string, body: CreateInvoiceInput) {
   }
 
   const result = await fiberRpc<FiberInvoiceResult>('new_invoice', [rpcParams])
-  const expiresAt = new Date(Date.now() + expirySeconds * 1000)
 
   const [created] = await db
     .insert(invoice)
@@ -71,13 +75,13 @@ export async function createInvoice(storeId: string, body: CreateInvoiceInput) {
       invoiceAddress: result.invoice_address,
       amount: body.amount,
       amountInUSD: body.amountInUSD,
-      currency: body.currency,
+      currency,
       description: body.description ?? null,
       expirySeconds,
-      expiresAt,
       status: 'Open',
-      udtTypeScript: body.udtTypeScript ?? null,
       storeId,
+      orderId: body.orderId.trim(),
+      customerEmail: body.customerEmail.trim(),
     })
     .returning()
 

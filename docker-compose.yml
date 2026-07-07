@@ -21,3 +21,4 @@ services:
     environment:
       PORT: ${GATEWAY_PORT:-3000}
       FIBER_RPC_URL: http://127.0.0.1:8227
+      FIBER_NETWORK: ${FIBER_NETWORK:-testnet}
