@@ -14,6 +14,7 @@ import { requireStoreBySlugForUser, requireStoreForUser } from '../../lib/store'
 import { type AuthVariables, requireAuth } from '../../middleware/auth'
 import { apiKeyRoutes } from './api-keys'
 import { invoiceRoutes } from './invoices'
+import { webhookRoutes } from './webhooks'
 
 const storeSelect = {
   id: store.id,
@@ -161,3 +162,4 @@ storeRoutes.patch('/:storeId', async (c) => {
 
 storeRoutes.route('/:storeId/api-keys', apiKeyRoutes)
 storeRoutes.route('/:storeId/invoices', invoiceRoutes)
+storeRoutes.route('/:storeId/webhooks', webhookRoutes)

@@ -20,6 +20,8 @@ import { Route as DashboardStoreSlugIndexRouteImport } from './routes/dashboard/
 import { Route as DashboardStoreSlugUserSettingsRouteImport } from './routes/dashboard/$storeSlug/user-settings'
 import { Route as DashboardStoreSlugSettingsRouteImport } from './routes/dashboard/$storeSlug/settings'
 import { Route as DashboardStoreSlugInvoicesRouteImport } from './routes/dashboard/$storeSlug/invoices'
+import { Route as DashboardStoreSlugWebhookIndexRouteImport } from './routes/dashboard/$storeSlug/webhook/index'
+import { Route as DashboardStoreSlugWebhookWebhookIdRouteImport } from './routes/dashboard/$storeSlug/webhook/$webhookId'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -79,6 +81,18 @@ const DashboardStoreSlugInvoicesRoute =
     path: '/invoices',
     getParentRoute: () => DashboardStoreSlugRoute,
   } as any)
+const DashboardStoreSlugWebhookIndexRoute =
+  DashboardStoreSlugWebhookIndexRouteImport.update({
+    id: '/webhook/',
+    path: '/webhook/',
+    getParentRoute: () => DashboardStoreSlugRoute,
+  } as any)
+const DashboardStoreSlugWebhookWebhookIdRoute =
+  DashboardStoreSlugWebhookWebhookIdRouteImport.update({
+    id: '/webhook/$webhookId',
+    path: '/webhook/$webhookId',
+    getParentRoute: () => DashboardStoreSlugRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -92,6 +106,8 @@ export interface FileRoutesByFullPath {
   '/dashboard/$storeSlug/settings': typeof DashboardStoreSlugSettingsRoute
   '/dashboard/$storeSlug/user-settings': typeof DashboardStoreSlugUserSettingsRoute
   '/dashboard/$storeSlug/': typeof DashboardStoreSlugIndexRoute
+  '/dashboard/$storeSlug/webhook/$webhookId': typeof DashboardStoreSlugWebhookWebhookIdRoute
+  '/dashboard/$storeSlug/webhook/': typeof DashboardStoreSlugWebhookIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -103,6 +119,8 @@ export interface FileRoutesByTo {
   '/dashboard/$storeSlug/settings': typeof DashboardStoreSlugSettingsRoute
   '/dashboard/$storeSlug/user-settings': typeof DashboardStoreSlugUserSettingsRoute
   '/dashboard/$storeSlug': typeof DashboardStoreSlugIndexRoute
+  '/dashboard/$storeSlug/webhook/$webhookId': typeof DashboardStoreSlugWebhookWebhookIdRoute
+  '/dashboard/$storeSlug/webhook': typeof DashboardStoreSlugWebhookIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -117,6 +135,8 @@ export interface FileRoutesById {
   '/dashboard/$storeSlug/settings': typeof DashboardStoreSlugSettingsRoute
   '/dashboard/$storeSlug/user-settings': typeof DashboardStoreSlugUserSettingsRoute
   '/dashboard/$storeSlug/': typeof DashboardStoreSlugIndexRoute
+  '/dashboard/$storeSlug/webhook/$webhookId': typeof DashboardStoreSlugWebhookWebhookIdRoute
+  '/dashboard/$storeSlug/webhook/': typeof DashboardStoreSlugWebhookIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -132,6 +152,8 @@ export interface FileRouteTypes {
     | '/dashboard/$storeSlug/settings'
     | '/dashboard/$storeSlug/user-settings'
     | '/dashboard/$storeSlug/'
+    | '/dashboard/$storeSlug/webhook/$webhookId'
+    | '/dashboard/$storeSlug/webhook/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -143,6 +165,8 @@ export interface FileRouteTypes {
     | '/dashboard/$storeSlug/settings'
     | '/dashboard/$storeSlug/user-settings'
     | '/dashboard/$storeSlug'
+    | '/dashboard/$storeSlug/webhook/$webhookId'
+    | '/dashboard/$storeSlug/webhook'
   id:
     | '__root__'
     | '/'
@@ -156,6 +180,8 @@ export interface FileRouteTypes {
     | '/dashboard/$storeSlug/settings'
     | '/dashboard/$storeSlug/user-settings'
     | '/dashboard/$storeSlug/'
+    | '/dashboard/$storeSlug/webhook/$webhookId'
+    | '/dashboard/$storeSlug/webhook/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -245,6 +271,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardStoreSlugInvoicesRouteImport
       parentRoute: typeof DashboardStoreSlugRoute
     }
+    '/dashboard/$storeSlug/webhook/': {
+      id: '/dashboard/$storeSlug/webhook/'
+      path: '/webhook'
+      fullPath: '/dashboard/$storeSlug/webhook/'
+      preLoaderRoute: typeof DashboardStoreSlugWebhookIndexRouteImport
+      parentRoute: typeof DashboardStoreSlugRoute
+    }
+    '/dashboard/$storeSlug/webhook/$webhookId': {
+      id: '/dashboard/$storeSlug/webhook/$webhookId'
+      path: '/webhook/$webhookId'
+      fullPath: '/dashboard/$storeSlug/webhook/$webhookId'
+      preLoaderRoute: typeof DashboardStoreSlugWebhookWebhookIdRouteImport
+      parentRoute: typeof DashboardStoreSlugRoute
+    }
   }
 }
 
@@ -253,6 +293,8 @@ interface DashboardStoreSlugRouteChildren {
   DashboardStoreSlugSettingsRoute: typeof DashboardStoreSlugSettingsRoute
   DashboardStoreSlugUserSettingsRoute: typeof DashboardStoreSlugUserSettingsRoute
   DashboardStoreSlugIndexRoute: typeof DashboardStoreSlugIndexRoute
+  DashboardStoreSlugWebhookWebhookIdRoute: typeof DashboardStoreSlugWebhookWebhookIdRoute
+  DashboardStoreSlugWebhookIndexRoute: typeof DashboardStoreSlugWebhookIndexRoute
 }
 
 const DashboardStoreSlugRouteChildren: DashboardStoreSlugRouteChildren = {
@@ -260,6 +302,9 @@ const DashboardStoreSlugRouteChildren: DashboardStoreSlugRouteChildren = {
   DashboardStoreSlugSettingsRoute: DashboardStoreSlugSettingsRoute,
   DashboardStoreSlugUserSettingsRoute: DashboardStoreSlugUserSettingsRoute,
   DashboardStoreSlugIndexRoute: DashboardStoreSlugIndexRoute,
+  DashboardStoreSlugWebhookWebhookIdRoute:
+    DashboardStoreSlugWebhookWebhookIdRoute,
+  DashboardStoreSlugWebhookIndexRoute: DashboardStoreSlugWebhookIndexRoute,
 }
 
 const DashboardStoreSlugRouteWithChildren =

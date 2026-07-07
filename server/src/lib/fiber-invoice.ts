@@ -43,6 +43,24 @@ export type FiberNewInvoiceResult = {
   invoice: FiberCkbInvoice
 }
 
+export type FiberInvoiceStatus =
+  | 'Open'
+  | 'Received'
+  | 'Paid'
+  | 'Expired'
+  | 'Cancelled'
+
+export type FiberGetInvoiceParams = {
+  payment_hash: FiberHexString
+}
+
+/** Result of the Fiber `get_invoice` RPC method. */
+export type FiberGetInvoiceResult = {
+  invoice_address: string
+  invoice: FiberCkbInvoice
+  status: FiberInvoiceStatus
+}
+
 export type FiberNewInvoiceParams = {
   amount: FiberHexString
   currency: FiberRpcCurrency

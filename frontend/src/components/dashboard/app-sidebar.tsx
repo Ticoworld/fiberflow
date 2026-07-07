@@ -1,5 +1,5 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { FileText, Settings } from 'lucide-react'
+import { FileText, Settings, Webhook } from 'lucide-react'
 
 import { StoreSwitcher } from '#/components/dashboard/store-switcher.tsx'
 import {
@@ -25,8 +25,10 @@ type AppSidebarProps = {
 export function AppSidebar({ store, stores }: AppSidebarProps) {
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const invoicesPath = `/dashboard/${store.slug}/invoices`
+  const webhooksPath = `/dashboard/${store.slug}/webhook`
   const settingsPath = `/dashboard/${store.slug}/settings`
   const isInvoicesActive = pathname === invoicesPath || pathname === `/dashboard/${store.slug}`
+  const isWebhooksActive = pathname.startsWith(webhooksPath)
   const isSettingsActive = pathname === settingsPath
 
   return (
@@ -59,6 +61,14 @@ export function AppSidebar({ store, stores }: AppSidebarProps) {
                   <Link to="/dashboard/$storeSlug/invoices" params={{ storeSlug: store.slug }}>
                     <FileText />
                     <span>Invoices</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isWebhooksActive} tooltip="Webhooks">
+                  <Link to="/dashboard/$storeSlug/webhook" params={{ storeSlug: store.slug }}>
+                    <Webhook />
+                    <span>Webhooks</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

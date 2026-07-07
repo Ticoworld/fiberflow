@@ -11,6 +11,7 @@ import {
   toFiberHexUInt,
 } from './fiber-invoice'
 import { formatRpcCurrency, getInvoiceCurrency } from './fiber-network'
+import { syncInvoiceStatus, syncInvoices } from './invoice-sync'
 import { usdToCents, usdToShannons } from './invoice-amount'
 
 const DEFAULT_EXPIRY_SECONDS = 7884000 // 91 days
@@ -84,11 +85,13 @@ export async function createInvoice(storeId: string, body: CreateInvoiceInput) {
 }
 
 export async function listInvoicesForStore(storeId: string) {
-  return db
+  const records = await db
     .select()
     .from(invoice)
     .where(eq(invoice.storeId, storeId))
     .orderBy(desc(invoice.createdAt))
+
+  return syncInvoices(records)
 }
 
 export async function getInvoiceForStore(storeId: string, invoiceId: number) {
@@ -97,5 +100,9 @@ export async function getInvoiceForStore(storeId: string, invoiceId: number) {
     .from(invoice)
     .where(and(eq(invoice.id, invoiceId), eq(invoice.storeId, storeId)))
 
-  return record ?? null
+  if (!record) {
+    return null
+  }
+
+  return syncInvoiceStatus(record)
 }

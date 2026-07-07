@@ -8,6 +8,7 @@ import { FiberRpcError } from './fiber-rpc'
 import { dashboardRoutes } from './routes/dashboard'
 import { integrationRoutes } from './routes/integration'
 import { rpcRoutes } from './routes/rpc'
+import { startBackgroundWorkers } from './workers'
 
 const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
   .split(',')
@@ -44,6 +45,8 @@ app.get('/health', (c) => {
 app.route('/api', dashboardRoutes)
 app.route('/v1', integrationRoutes)
 app.route('/rpc', rpcRoutes)
+
+startBackgroundWorkers()
 
 const port = Number(process.env.PORT ?? 3000)
 
