@@ -1,10 +1,10 @@
 import { createFileRoute, Link, redirect } from '@tanstack/react-router'
 import { Button } from '#/components/ui/button.tsx'
-import { authClient } from '#/lib/auth-client.ts'
+import { getAppSession } from '#/lib/auth-session.ts'
 
 export const Route = createFileRoute('/')({
   beforeLoad: async () => {
-    const { data } = await authClient.getSession()
+    const { data } = await getAppSession()
     if (data?.user) {
       throw redirect({ to: '/dashboard' })
     }

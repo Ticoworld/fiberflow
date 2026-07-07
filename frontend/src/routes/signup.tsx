@@ -16,6 +16,7 @@ import {
 import { Input } from '#/components/ui/input.tsx'
 import { Spinner } from '#/components/ui/spinner.tsx'
 import { authClient } from '#/lib/auth-client.ts'
+import { getAppSession } from '#/lib/auth-session.ts'
 
 const signupSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -29,7 +30,7 @@ type SignupFormValues = z.infer<typeof signupSchema>
 
 export const Route = createFileRoute('/signup')({
   beforeLoad: async () => {
-    const { data } = await authClient.getSession()
+    const { data } = await getAppSession()
     if (data?.user) {
       throw redirect({ to: '/dashboard' })
     }

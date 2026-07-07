@@ -16,6 +16,7 @@ import {
 import { Input } from '#/components/ui/input.tsx'
 import { Spinner } from '#/components/ui/spinner.tsx'
 import { authClient } from '#/lib/auth-client.ts'
+import { getAppSession } from '#/lib/auth-session.ts'
 
 const loginSchema = z.object({
   email: z.string().email('Enter a valid email address'),
@@ -26,7 +27,7 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 export const Route = createFileRoute('/login')({
   beforeLoad: async () => {
-    const { data } = await authClient.getSession()
+    const { data } = await getAppSession()
     if (data?.user) {
       throw redirect({ to: '/dashboard' })
     }
