@@ -6,6 +6,7 @@ import {
   serial,
   text,
   timestamp,
+  uuid,
 } from 'drizzle-orm/pg-core'
 
 import { store } from './store'
@@ -32,7 +33,7 @@ export const invoice = pgTable(
     expiresAt: timestamp('expires_at').notNull(),
     status: invoiceStatusEnum('status').notNull().default('Open'),
     udtTypeScript: text('udt_type_script'),
-    storeId: text('store_id').references(() => store.id, { onDelete: 'set null' }),
+    storeId: uuid('store_id').references(() => store.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

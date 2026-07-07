@@ -1,4 +1,4 @@
-import { index, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { index, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
 import { store } from './store';
 
@@ -9,7 +9,7 @@ export const apiKey = pgTable(
     name: text('name').notNull(),
     keyHash: text('key_hash').notNull().unique(),
     keyPrefix: text('key_prefix').notNull(),
-    storeId: text('store_id')
+    storeId: uuid('store_id')
       .notNull()
       .references(() => store.id, { onDelete: 'cascade' }),
     lastUsedAt: timestamp('last_used_at'),
