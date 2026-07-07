@@ -283,12 +283,7 @@ function InvoicesPage() {
                 Create your first invoice to start accepting payments.
               </EmptyDescription>
             </EmptyHeader>
-            <EmptyContent>
-              <Button onClick={() => setDialogOpen(true)}>
-                <Plus />
-                New invoice
-              </Button>
-            </EmptyContent>
+            
           </Empty>
         ) : (
           <div className="rounded-lg border">
