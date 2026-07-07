@@ -10,7 +10,7 @@ import {
   normalizeStoreSlug,
   validateStoreSlug,
 } from '../../lib/store-slug'
-import { requireStoreBySlugForUser } from '../../lib/store'
+import { requireStoreBySlugForUser, requireStoreForUser } from '../../lib/store'
 import { type AuthVariables, requireAuth } from '../../middleware/auth'
 import { apiKeyRoutes } from './api-keys'
 import { invoiceRoutes } from './invoices'
@@ -98,6 +98,65 @@ storeRoutes.post('/', async (c) => {
     .returning(storeSelect)
 
   return c.json({ store: created }, 201)
+})
+
+storeRoutes.patch('/:storeId', async (c) => {
+  const userId = c.get('userId')
+  const storeId = c.req.param('storeId')
+  const record = await requireStoreForUser(storeId, userId)
+  const body = await c.req.json<{ name?: string; slug?: string; logo?: string | null }>()
+
+  const updates: {
+    name?: string
+    slug?: string
+    logo?: string | null
+  } = {}
+
+  if (body.name !== undefined) {
+    const name = body.name.trim()
+
+    if (!name) {
+      throw new HTTPException(400, { message: 'Name is required' })
+    }
+
+    if (name.length > 100) {
+      throw new HTTPException(400, { message: 'Name must be 100 characters or less' })
+    }
+
+    updates.name = name
+  }
+
+  if (body.slug !== undefined) {
+    const slug = normalizeStoreSlug(body.slug)
+    const slugError = validateStoreSlug(slug)
+
+    if (slugError) {
+      throw new HTTPException(400, { message: slugError })
+    }
+
+    if (slug !== record.slug && (await isStoreSlugTaken(slug, storeId))) {
+      throw new HTTPException(409, { message: 'This store URL is already taken' })
+    }
+
+    updates.slug = slug
+  }
+
+  if (body.logo !== undefined) {
+    const logo = body.logo?.trim() ?? ''
+    updates.logo = logo.length > 0 ? logo : null
+  }
+
+  if (Object.keys(updates).length === 0) {
+    throw new HTTPException(400, { message: 'No updates provided' })
+  }
+
+  const [updated] = await db
+    .update(store)
+    .set(updates)
+    .where(eq(store.id, storeId))
+    .returning(storeSelect)
+
+  return c.json({ store: updated })
 })
 
 storeRoutes.route('/:storeId/api-keys', apiKeyRoutes)

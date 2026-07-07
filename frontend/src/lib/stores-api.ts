@@ -14,6 +14,12 @@ export type CreateStoreInput = {
   slug?: string
 }
 
+export type UpdateStoreInput = {
+  name?: string
+  slug?: string
+  logo?: string | null
+}
+
 async function parseError(response: Response): Promise<string> {
   try {
     const body = (await response.json()) as { message?: string; error?: string }
@@ -48,6 +54,24 @@ export async function fetchStoreBySlug(slug: string): Promise<StoreSummary> {
 export async function createStore(input: CreateStoreInput): Promise<StoreSummary> {
   const response = await apiFetch('/api/stores', {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  })
+
+  if (!response.ok) {
+    throw new Error(await parseError(response))
+  }
+
+  const data = (await response.json()) as { store: StoreSummary }
+  return data.store
+}
+
+export async function updateStore(
+  storeId: string,
+  input: UpdateStoreInput,
+): Promise<StoreSummary> {
+  const response = await apiFetch(`/api/stores/${encodeURIComponent(storeId)}`, {
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
   })

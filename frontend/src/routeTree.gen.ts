@@ -16,6 +16,10 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardStoreSlugRouteImport } from './routes/dashboard/$storeSlug'
+import { Route as DashboardStoreSlugIndexRouteImport } from './routes/dashboard/$storeSlug/index'
+import { Route as DashboardStoreSlugUserSettingsRouteImport } from './routes/dashboard/$storeSlug/user-settings'
+import { Route as DashboardStoreSlugSettingsRouteImport } from './routes/dashboard/$storeSlug/settings'
+import { Route as DashboardStoreSlugInvoicesRouteImport } from './routes/dashboard/$storeSlug/invoices'
 
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
@@ -52,6 +56,29 @@ const DashboardStoreSlugRoute = DashboardStoreSlugRouteImport.update({
   path: '/$storeSlug',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardStoreSlugIndexRoute = DashboardStoreSlugIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardStoreSlugRoute,
+} as any)
+const DashboardStoreSlugUserSettingsRoute =
+  DashboardStoreSlugUserSettingsRouteImport.update({
+    id: '/user-settings',
+    path: '/user-settings',
+    getParentRoute: () => DashboardStoreSlugRoute,
+  } as any)
+const DashboardStoreSlugSettingsRoute =
+  DashboardStoreSlugSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => DashboardStoreSlugRoute,
+  } as any)
+const DashboardStoreSlugInvoicesRoute =
+  DashboardStoreSlugInvoicesRouteImport.update({
+    id: '/invoices',
+    path: '/invoices',
+    getParentRoute: () => DashboardStoreSlugRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,16 +86,23 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
-  '/dashboard/$storeSlug': typeof DashboardStoreSlugRoute
+  '/dashboard/$storeSlug': typeof DashboardStoreSlugRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/$storeSlug/invoices': typeof DashboardStoreSlugInvoicesRoute
+  '/dashboard/$storeSlug/settings': typeof DashboardStoreSlugSettingsRoute
+  '/dashboard/$storeSlug/user-settings': typeof DashboardStoreSlugUserSettingsRoute
+  '/dashboard/$storeSlug/': typeof DashboardStoreSlugIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
-  '/dashboard/$storeSlug': typeof DashboardStoreSlugRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/dashboard/$storeSlug/invoices': typeof DashboardStoreSlugInvoicesRoute
+  '/dashboard/$storeSlug/settings': typeof DashboardStoreSlugSettingsRoute
+  '/dashboard/$storeSlug/user-settings': typeof DashboardStoreSlugUserSettingsRoute
+  '/dashboard/$storeSlug': typeof DashboardStoreSlugIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,8 +111,12 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
-  '/dashboard/$storeSlug': typeof DashboardStoreSlugRoute
+  '/dashboard/$storeSlug': typeof DashboardStoreSlugRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/$storeSlug/invoices': typeof DashboardStoreSlugInvoicesRoute
+  '/dashboard/$storeSlug/settings': typeof DashboardStoreSlugSettingsRoute
+  '/dashboard/$storeSlug/user-settings': typeof DashboardStoreSlugUserSettingsRoute
+  '/dashboard/$storeSlug/': typeof DashboardStoreSlugIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -90,14 +128,21 @@ export interface FileRouteTypes {
     | '/signup'
     | '/dashboard/$storeSlug'
     | '/dashboard/'
+    | '/dashboard/$storeSlug/invoices'
+    | '/dashboard/$storeSlug/settings'
+    | '/dashboard/$storeSlug/user-settings'
+    | '/dashboard/$storeSlug/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/onboarding'
     | '/signup'
-    | '/dashboard/$storeSlug'
     | '/dashboard'
+    | '/dashboard/$storeSlug/invoices'
+    | '/dashboard/$storeSlug/settings'
+    | '/dashboard/$storeSlug/user-settings'
+    | '/dashboard/$storeSlug'
   id:
     | '__root__'
     | '/'
@@ -107,6 +152,10 @@ export interface FileRouteTypes {
     | '/signup'
     | '/dashboard/$storeSlug'
     | '/dashboard/'
+    | '/dashboard/$storeSlug/invoices'
+    | '/dashboard/$storeSlug/settings'
+    | '/dashboard/$storeSlug/user-settings'
+    | '/dashboard/$storeSlug/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -168,16 +217,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardStoreSlugRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/$storeSlug/': {
+      id: '/dashboard/$storeSlug/'
+      path: '/'
+      fullPath: '/dashboard/$storeSlug/'
+      preLoaderRoute: typeof DashboardStoreSlugIndexRouteImport
+      parentRoute: typeof DashboardStoreSlugRoute
+    }
+    '/dashboard/$storeSlug/user-settings': {
+      id: '/dashboard/$storeSlug/user-settings'
+      path: '/user-settings'
+      fullPath: '/dashboard/$storeSlug/user-settings'
+      preLoaderRoute: typeof DashboardStoreSlugUserSettingsRouteImport
+      parentRoute: typeof DashboardStoreSlugRoute
+    }
+    '/dashboard/$storeSlug/settings': {
+      id: '/dashboard/$storeSlug/settings'
+      path: '/settings'
+      fullPath: '/dashboard/$storeSlug/settings'
+      preLoaderRoute: typeof DashboardStoreSlugSettingsRouteImport
+      parentRoute: typeof DashboardStoreSlugRoute
+    }
+    '/dashboard/$storeSlug/invoices': {
+      id: '/dashboard/$storeSlug/invoices'
+      path: '/invoices'
+      fullPath: '/dashboard/$storeSlug/invoices'
+      preLoaderRoute: typeof DashboardStoreSlugInvoicesRouteImport
+      parentRoute: typeof DashboardStoreSlugRoute
+    }
   }
 }
 
+interface DashboardStoreSlugRouteChildren {
+  DashboardStoreSlugInvoicesRoute: typeof DashboardStoreSlugInvoicesRoute
+  DashboardStoreSlugSettingsRoute: typeof DashboardStoreSlugSettingsRoute
+  DashboardStoreSlugUserSettingsRoute: typeof DashboardStoreSlugUserSettingsRoute
+  DashboardStoreSlugIndexRoute: typeof DashboardStoreSlugIndexRoute
+}
+
+const DashboardStoreSlugRouteChildren: DashboardStoreSlugRouteChildren = {
+  DashboardStoreSlugInvoicesRoute: DashboardStoreSlugInvoicesRoute,
+  DashboardStoreSlugSettingsRoute: DashboardStoreSlugSettingsRoute,
+  DashboardStoreSlugUserSettingsRoute: DashboardStoreSlugUserSettingsRoute,
+  DashboardStoreSlugIndexRoute: DashboardStoreSlugIndexRoute,
+}
+
+const DashboardStoreSlugRouteWithChildren =
+  DashboardStoreSlugRoute._addFileChildren(DashboardStoreSlugRouteChildren)
+
 interface DashboardRouteChildren {
-  DashboardStoreSlugRoute: typeof DashboardStoreSlugRoute
+  DashboardStoreSlugRoute: typeof DashboardStoreSlugRouteWithChildren
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
-  DashboardStoreSlugRoute: DashboardStoreSlugRoute,
+  DashboardStoreSlugRoute: DashboardStoreSlugRouteWithChildren,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 

@@ -40,16 +40,23 @@ const onboardingSchema = z.object({
 type OnboardingFormValues = z.infer<typeof onboardingSchema>
 
 export const Route = createFileRoute('/onboarding')({
-  beforeLoad: async () => {
+  validateSearch: z.object({
+    new: z.boolean().optional().default(false),
+  }),
+  beforeLoad: async ({ search }) => {
     const { data } = await getAppSession()
     if (!data?.user) {
       throw redirect({ to: '/login' })
     }
 
+    if (search.new) {
+      return
+    }
+
     const stores = await fetchStores()
     if (stores.length > 0) {
       throw redirect({
-        to: '/dashboard/$storeSlug',
+        to: '/dashboard/$storeSlug/invoices',
         params: { storeSlug: stores[0].slug },
       })
     }
@@ -59,6 +66,7 @@ export const Route = createFileRoute('/onboarding')({
 
 function OnboardingPage() {
   const navigate = useNavigate()
+  const { new: isNewStore } = Route.useSearch()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [slugTouched, setSlugTouched] = useState(false)
 
@@ -94,7 +102,7 @@ function OnboardingPage() {
 
       toast.success('Store created successfully')
       await navigate({
-        to: '/dashboard/$storeSlug',
+        to: '/dashboard/$storeSlug/invoices',
         params: { storeSlug: store.slug },
       })
     } catch (error) {
@@ -110,9 +118,11 @@ function OnboardingPage() {
     <div className="flex min-h-svh items-center justify-center p-6">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Create your store</CardTitle>
+          <CardTitle>{isNewStore ? 'Create a new store' : 'Create your store'}</CardTitle>
           <CardDescription>
-            Set up your FiberFlow store to start accepting payments.
+            {isNewStore
+              ? 'Add another FiberFlow store to your account.'
+              : 'Set up your FiberFlow store to start accepting payments.'}
           </CardDescription>
         </CardHeader>
         <CardContent>

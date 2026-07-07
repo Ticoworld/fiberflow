@@ -43,13 +43,20 @@ export function validateStoreSlug(slug: string): string | null {
   return null
 }
 
-export async function isStoreSlugTaken(slug: string): Promise<boolean> {
+export async function isStoreSlugTaken(
+  slug: string,
+  excludeStoreId?: string,
+): Promise<boolean> {
   const [record] = await db
     .select({ id: store.id })
     .from(store)
     .where(eq(store.slug, slug))
 
-  return record !== undefined
+  if (!record) {
+    return false
+  }
+
+  return excludeStoreId ? record.id !== excludeStoreId : true
 }
 
 export async function generateUniqueStoreSlug(name: string): Promise<string> {

@@ -11,7 +11,7 @@ export const Route = createFileRoute('/dashboard/')({
     }
 
     throw redirect({
-      to: '/dashboard/$storeSlug',
+      to: '/dashboard/$storeSlug/invoices',
       params: { storeSlug: stores[0].slug },
     })
   },
