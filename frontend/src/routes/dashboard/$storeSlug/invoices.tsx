@@ -44,22 +44,20 @@ import {
   TableHeader,
   TableRow,
 } from '#/components/ui/table.tsx'
-import { fetchFiberConfig } from '#/lib/fiber-config-api.ts'
+import type { Invoice, InvoiceStatus } from '#/lib/invoices-api.ts'
 import {
-  type Invoice,
-  type InvoiceStatus,
   createInvoice,
   fetchInvoices,
+  formatAmountInUsd,
+  getInvoiceExpiresAt,
 } from '#/lib/invoices-api.ts'
 import { fetchStoreBySlug } from '#/lib/stores-api.ts'
 
 const createInvoiceSchema = z.object({
-  amount: z.string().min(1, 'Amount is required'),
-  amountInUSD: z.coerce.number().min(0, 'Amount in USD must be 0 or greater'),
+  amountInUSD: z.number({ error: 'Amount is required' }).gt(0, 'Amount must be greater than 0'),
   orderId: z.string().min(1, 'Order ID is required'),
-  customerEmail: z.string().email('Enter a valid email address'),
+  customerEmail: z.email('Enter a valid email address'),
   description: z.string().optional(),
-  expirySeconds: z.coerce.number().int().positive().optional(),
 })
 
 type CreateInvoiceFormValues = z.infer<typeof createInvoiceSchema>
@@ -69,11 +67,8 @@ const storeRouteApi = getRouteApi('/dashboard/$storeSlug')
 export const Route = createFileRoute('/dashboard/$storeSlug/invoices')({
   loader: async ({ params }) => {
     const store = await fetchStoreBySlug(params.storeSlug)
-    const [invoices, fiberConfig] = await Promise.all([
-      fetchInvoices(store.id),
-      fetchFiberConfig(),
-    ])
-    return { invoices, fiberConfig }
+    const invoices = await fetchInvoices(store.id)
+    return { invoices }
   },
   component: InvoicesPage,
 })
@@ -102,7 +97,7 @@ function formatCurrencyLabel(currency: Invoice['currency']) {
 
 function InvoicesPage() {
   const { store } = storeRouteApi.useLoaderData()
-  const { invoices: initialInvoices, fiberConfig } = Route.useLoaderData()
+  const initialInvoices = Route.useLoaderData().invoices
   const [invoices, setInvoices] = useState(initialInvoices)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -110,12 +105,10 @@ function InvoicesPage() {
   const form = useForm<CreateInvoiceFormValues>({
     resolver: zodResolver(createInvoiceSchema),
     defaultValues: {
-      amount: '',
-      amountInUSD: 0,
+      amountInUSD: undefined as number | undefined,
       orderId: '',
       customerEmail: '',
       description: '',
-      expirySeconds: 3600,
     },
   })
 
@@ -124,12 +117,10 @@ function InvoicesPage() {
 
     try {
       const invoice = await createInvoice(store.id, {
-        amount: values.amount,
         amountInUSD: values.amountInUSD,
         orderId: values.orderId.trim(),
         customerEmail: values.customerEmail.trim(),
         description: values.description?.trim() || undefined,
-        expirySeconds: values.expirySeconds,
       })
 
       setInvoices((current) => [invoice, ...current])
@@ -147,7 +138,7 @@ function InvoicesPage() {
     <>
       <DashboardHeader
         title="Invoices"
-        description={`Manage payment invoices for ${store.name} on ${fiberConfig.networkLabel}`}
+        description={`Manage payment invoices for ${store.name}`}
       />
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
         <div className="flex items-center justify-end">
@@ -167,16 +158,29 @@ function InvoicesPage() {
               </DialogHeader>
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 <FieldGroup>
-                  <Field>
-                    <FieldLabel>Network currency</FieldLabel>
+                  <Field data-invalid={!!form.formState.errors.amountInUSD}>
+                    <FieldLabel htmlFor="amountInUSD">Amount (USD)</FieldLabel>
                     <Input
-                      readOnly
-                      value={`${formatCurrencyLabel(fiberConfig.invoiceCurrency)} (${fiberConfig.networkLabel})`}
+                      id="amountInUSD"
+                      type="number"
+                      min={0.01}
+                      step="0.01"
+                      placeholder="10.00"
+                      aria-invalid={!!form.formState.errors.amountInUSD}
+                      {...form.register('amountInUSD', { valueAsNumber: true })}
                     />
-                    <FieldDescription>
-                      Set by FIBER_NETWORK in your server environment (
-                      {fiberConfig.fiberNetwork} → {fiberConfig.invoiceCurrency}).
-                    </FieldDescription>
+                    <FieldError errors={[form.formState.errors.amountInUSD]} />
+                  </Field>
+
+                  <Field data-invalid={!!form.formState.errors.description}>
+                    <FieldLabel htmlFor="description">Description</FieldLabel>
+                    <Input
+                      id="description"
+                      placeholder="Optional payment description"
+                      aria-invalid={!!form.formState.errors.description}
+                      {...form.register('description')}
+                    />
+                    <FieldError errors={[form.formState.errors.description]} />
                   </Field>
 
                   <Field data-invalid={!!form.formState.errors.orderId}>
@@ -201,57 +205,6 @@ function InvoicesPage() {
                       {...form.register('customerEmail')}
                     />
                     <FieldError errors={[form.formState.errors.customerEmail]} />
-                  </Field>
-
-                  <Field data-invalid={!!form.formState.errors.amount}>
-                    <FieldLabel htmlFor="amount">Amount (shannons)</FieldLabel>
-                    <Input
-                      id="amount"
-                      placeholder="100000000"
-                      aria-invalid={!!form.formState.errors.amount}
-                      {...form.register('amount')}
-                    />
-                    <FieldDescription>1 CKB = 10⁸ shannons.</FieldDescription>
-                    <FieldError errors={[form.formState.errors.amount]} />
-                  </Field>
-
-                  <Field data-invalid={!!form.formState.errors.amountInUSD}>
-                    <FieldLabel htmlFor="amountInUSD">Amount in USD</FieldLabel>
-                    <Input
-                      id="amountInUSD"
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      placeholder="10.00"
-                      aria-invalid={!!form.formState.errors.amountInUSD}
-                      {...form.register('amountInUSD')}
-                    />
-                    <FieldError errors={[form.formState.errors.amountInUSD]} />
-                  </Field>
-
-                  <Field data-invalid={!!form.formState.errors.expirySeconds}>
-                    <FieldLabel htmlFor="expirySeconds">Expiry (seconds)</FieldLabel>
-                    <Input
-                      id="expirySeconds"
-                      type="number"
-                      min={1}
-                      placeholder="3600"
-                      aria-invalid={!!form.formState.errors.expirySeconds}
-                      {...form.register('expirySeconds')}
-                    />
-                    <FieldDescription>Defaults to 3600 seconds (1 hour).</FieldDescription>
-                    <FieldError errors={[form.formState.errors.expirySeconds]} />
-                  </Field>
-
-                  <Field data-invalid={!!form.formState.errors.description}>
-                    <FieldLabel htmlFor="description">Description</FieldLabel>
-                    <Input
-                      id="description"
-                      placeholder="Optional payment description"
-                      aria-invalid={!!form.formState.errors.description}
-                      {...form.register('description')}
-                    />
-                    <FieldError errors={[form.formState.errors.description]} />
                   </Field>
                 </FieldGroup>
 
@@ -283,7 +236,12 @@ function InvoicesPage() {
                 Create your first invoice to start accepting payments.
               </EmptyDescription>
             </EmptyHeader>
-            
+            <EmptyContent>
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus />
+                New invoice
+              </Button>
+            </EmptyContent>
           </Empty>
         ) : (
           <div className="rounded-lg border">
@@ -316,13 +274,14 @@ function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
               {invoice.customerEmail}
             </TableCell>
             <TableCell>
-              {invoice.amount} {formatCurrencyLabel(invoice.currency)}
+              ${formatAmountInUsd(invoice.amountInUSD)} ({invoice.amount}{' '}
+              {formatCurrencyLabel(invoice.currency)})
             </TableCell>
             <TableCell>
               <Badge variant={invoiceStatusVariant(invoice.status)}>{invoice.status}</Badge>
             </TableCell>
             <TableCell className="text-muted-foreground">
-              {format(new Date(invoice.expiresAt), 'MMM d, yyyy HH:mm')}
+              {format(getInvoiceExpiresAt(invoice), 'MMM d, yyyy HH:mm')}
             </TableCell>
             <TableCell className="text-muted-foreground">
               {format(new Date(invoice.createdAt), 'MMM d, yyyy HH:mm')}

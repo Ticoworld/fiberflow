@@ -4,37 +4,26 @@ import { HTTPException } from 'hono/http-exception'
 import { db } from '../db'
 import { invoice } from '../db/schema'
 import { fiberRpc } from '../fiber-rpc'
+import {
+  type FiberNewInvoiceParams,
+  type FiberNewInvoiceResult,
+  getInvoiceExpirySecondsFromAttrs,
+} from './fiber-invoice'
 import { formatRpcCurrency, getInvoiceCurrency } from './fiber-network'
+import { usdToCents, usdToShannons } from './invoice-amount'
+
+const DEFAULT_EXPIRY_SECONDS = 7884000 // 91 days
 
 export type CreateInvoiceInput = {
-  amount: string
   amountInUSD: number
   orderId: string
   customerEmail: string
   description?: string
-  expirySeconds?: number
-  payment_preimage?: string
-  payment_hash?: string
-  allow_mpp?: boolean
-  allow_trampoline_routing?: boolean
-}
-
-type FiberInvoiceResult = {
-  invoice_address: string
-  invoice: {
-    data: {
-      payment_hash: string
-    }
-  }
 }
 
 export function validateCreateInvoiceInput(body: Partial<CreateInvoiceInput>) {
-  if (!body.amount?.trim()) {
-    throw new HTTPException(400, { message: 'amount is required' })
-  }
-
-  if (body.amountInUSD === undefined || body.amountInUSD < 0) {
-    throw new HTTPException(400, { message: 'amountInUSD is required' })
+  if (body.amountInUSD === undefined || body.amountInUSD <= 0) {
+    throw new HTTPException(400, { message: 'amountInUSD must be greater than 0' })
   }
 
   if (!body.orderId?.trim()) {
@@ -50,31 +39,35 @@ export async function createInvoice(storeId: string, body: CreateInvoiceInput) {
   validateCreateInvoiceInput(body)
 
   const currency = getInvoiceCurrency()
-  const expirySeconds = body.expirySeconds ?? 7884000 // 91 days
+  const amount = await usdToShannons(body.amountInUSD)
+  const amountInUSD = usdToCents(body.amountInUSD)
 
-  const rpcParams: Record<string, unknown> = {
-    amount: body.amount,
+  const rpcParams: FiberNewInvoiceParams = {
+    amount,
     currency: formatRpcCurrency(currency),
-    expiry: expirySeconds,
+    expiry: DEFAULT_EXPIRY_SECONDS,
+    ...(body.description ? { description: body.description } : {}),
   }
 
-  if (body.description) rpcParams.description = body.description
-  if (body.payment_preimage) rpcParams.payment_preimage = body.payment_preimage
-  if (body.payment_hash) rpcParams.payment_hash = body.payment_hash
-  if (body.allow_mpp !== undefined) rpcParams.allow_mpp = body.allow_mpp
-  if (body.allow_trampoline_routing !== undefined) {
-    rpcParams.allow_trampoline_routing = body.allow_trampoline_routing
+  const result = await fiberRpc<FiberNewInvoiceResult>('new_invoice', [rpcParams])
+
+  if (!result.invoice.amount) {
+    throw new HTTPException(502, { message: 'Fiber RPC new_invoice returned no invoice amount' })
   }
 
-  const result = await fiberRpc<FiberInvoiceResult>('new_invoice', [rpcParams])
+  const expirySeconds = getInvoiceExpirySecondsFromAttrs(result.invoice.data.attrs)
+
+  if (expirySeconds === undefined) {
+    throw new HTTPException(502, { message: 'Fiber RPC new_invoice returned no invoice expiry' })
+  }
 
   const [created] = await db
     .insert(invoice)
     .values({
       paymentHash: result.invoice.data.payment_hash,
       invoiceAddress: result.invoice_address,
-      amount: body.amount,
-      amountInUSD: body.amountInUSD,
+      amount: result.invoice.amount,
+      amountInUSD,
       currency,
       description: body.description ?? null,
       expirySeconds,

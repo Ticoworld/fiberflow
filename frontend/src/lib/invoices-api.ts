@@ -11,7 +11,6 @@ export type Invoice = {
   amountInUSD: number
   description: string | null
   expirySeconds: number
-  expiresAt: string
   paymentHash: string | null
   invoiceAddress: string | null
   status: InvoiceStatus
@@ -23,12 +22,10 @@ export type Invoice = {
 }
 
 export type CreateInvoiceInput = {
-  amount: string
   amountInUSD: number
   orderId: string
   customerEmail: string
   description?: string
-  expirySeconds?: number
 }
 
 async function parseError(response: Response): Promise<string> {
@@ -67,4 +64,12 @@ export async function createInvoice(
 
   const data = (await response.json()) as { invoice: Invoice }
   return data.invoice
+}
+
+export function formatAmountInUsd(amountInUsdCents: number): string {
+  return (amountInUsdCents / 100).toFixed(2)
+}
+
+export function getInvoiceExpiresAt(invoice: Invoice): Date {
+  return new Date(new Date(invoice.createdAt).getTime() + invoice.expirySeconds * 1000)
 }

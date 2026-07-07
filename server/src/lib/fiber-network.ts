@@ -1,5 +1,7 @@
 import type { InvoiceCurrency } from '../db/schema'
 
+import type { FiberRpcCurrency } from './fiber-invoice'
+
 export type FiberNetwork = 'mainnet' | 'testnet' | 'devnet'
 
 const NETWORK_CURRENCY = {
@@ -32,8 +34,8 @@ export function getInvoiceCurrency(): InvoiceCurrency {
 }
 
 /** Fiber RPC expects Fibb, Fibt, or Fibd. */
-export function formatRpcCurrency(currency: InvoiceCurrency): string {
-  return currency.charAt(0).toUpperCase() + currency.slice(1)
+export function formatRpcCurrency(currency: InvoiceCurrency): FiberRpcCurrency {
+  return (currency.charAt(0).toUpperCase() + currency.slice(1)) as FiberRpcCurrency
 }
 
 export function formatNetworkLabel(network: FiberNetwork): string {

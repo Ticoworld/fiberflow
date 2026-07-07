@@ -41,16 +41,10 @@ invoiceRoutes.post('/', async (c) => {
   const body = await c.req.json<Partial<CreateInvoiceInput>>()
 
   const created = await createInvoice(storeId, {
-    amount: body.amount ?? '',
     amountInUSD: body.amountInUSD ?? -1,
     orderId: body.orderId ?? '',
     customerEmail: body.customerEmail ?? '',
     description: body.description,
-    expirySeconds: body.expirySeconds,
-    payment_preimage: body.payment_preimage,
-    payment_hash: body.payment_hash,
-    allow_mpp: body.allow_mpp,
-    allow_trampoline_routing: body.allow_trampoline_routing,
   })
 
   return c.json({ invoice: created }, 201)
