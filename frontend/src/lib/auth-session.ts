@@ -1,17 +1,18 @@
+import { getRequestCookieHeader } from '#/lib/request-cookie.ts'
+
 import { authClient } from '#/lib/auth-client.ts'
 
 export async function getAppSession() {
-  if (import.meta.env.SSR) {
-    const { getRequestHeader } = await import('@tanstack/react-start/server')
-    const cookie = getRequestHeader('cookie')
+  const cookie = getRequestCookieHeader()
 
-    return authClient.getSession({
-      fetchOptions: {
-        credentials: 'include',
-        headers: cookie ? { cookie } : undefined,
-      },
-    })
+  if (!cookie) {
+    return authClient.getSession()
   }
 
-  return authClient.getSession()
+  return authClient.getSession({
+    fetchOptions: {
+      credentials: 'include',
+      headers: { cookie },
+    },
+  })
 }

@@ -4,9 +4,25 @@ import { HTTPException } from 'hono/http-exception'
 
 import { db } from '../../db'
 import { store } from '../../db/schema'
+import {
+  generateUniqueStoreSlug,
+  isStoreSlugTaken,
+  normalizeStoreSlug,
+  validateStoreSlug,
+} from '../../lib/store-slug'
+import { requireStoreBySlugForUser } from '../../lib/store'
 import { type AuthVariables, requireAuth } from '../../middleware/auth'
 import { apiKeyRoutes } from './api-keys'
 import { invoiceRoutes } from './invoices'
+
+const storeSelect = {
+  id: store.id,
+  name: store.name,
+  slug: store.slug,
+  logo: store.logo,
+  createdAt: store.createdAt,
+  updatedAt: store.updatedAt,
+}
 
 export const storeRoutes = new Hono<{ Variables: AuthVariables }>()
 
@@ -16,12 +32,7 @@ storeRoutes.get('/', async (c) => {
   const userId = c.get('userId')
 
   const stores = await db
-    .select({
-      id: store.id,
-      name: store.name,
-      createdAt: store.createdAt,
-      updatedAt: store.updatedAt,
-    })
+    .select(storeSelect)
     .from(store)
     .where(eq(store.createdBy, userId))
     .orderBy(desc(store.createdAt))
@@ -29,9 +40,27 @@ storeRoutes.get('/', async (c) => {
   return c.json({ stores })
 })
 
+storeRoutes.get('/slug/:slug', async (c) => {
+  const userId = c.get('userId')
+  const slug = c.req.param('slug')
+
+  const record = await requireStoreBySlugForUser(slug, userId)
+
+  return c.json({
+    store: {
+      id: record.id,
+      name: record.name,
+      slug: record.slug,
+      logo: record.logo,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    },
+  })
+})
+
 storeRoutes.post('/', async (c) => {
   const userId = c.get('userId')
-  const body = await c.req.json<{ name?: string }>()
+  const body = await c.req.json<{ name?: string; slug?: string }>()
   const name = body.name?.trim()
 
   if (!name) {
@@ -42,21 +71,31 @@ storeRoutes.post('/', async (c) => {
     throw new HTTPException(400, { message: 'Name must be 100 characters or less' })
   }
 
-  const id = crypto.randomUUID()
+  let slug: string
+
+  if (body.slug?.trim()) {
+    slug = normalizeStoreSlug(body.slug)
+    const slugError = validateStoreSlug(slug)
+
+    if (slugError) {
+      throw new HTTPException(400, { message: slugError })
+    }
+
+    if (await isStoreSlugTaken(slug)) {
+      throw new HTTPException(409, { message: 'This store URL is already taken' })
+    }
+  } else {
+    slug = await generateUniqueStoreSlug(name)
+  }
 
   const [created] = await db
     .insert(store)
     .values({
-      id,
       name,
+      slug,
       createdBy: userId,
     })
-    .returning({
-      id: store.id,
-      name: store.name,
-      createdAt: store.createdAt,
-      updatedAt: store.updatedAt,
-    })
+    .returning(storeSelect)
 
   return c.json({ store: created }, 201)
 })
