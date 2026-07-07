@@ -74,7 +74,7 @@ function SignupPage() {
   return (
     <AuthCard
       title="Create an account"
-      description="Enter your details to get started with Fiberflow Gateway."
+      description="Enter your details to get started with FiberFlow."
       footer={{
         text: 'Already have an account?',
         linkText: 'Sign in',

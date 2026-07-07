@@ -1,7 +1,7 @@
 services:
   fiber:
     image: nervos/fiber:${FIBER_VERSION:-0.9.0-rc3}
-    container_name: fiberflow-gateway
+    container_name: fiberflow
     restart: unless-stopped
     env_file: .env
     ports:
@@ -12,7 +12,7 @@ services:
 
   gateway:
     build: ./server
-    container_name: fiberflow-gateway-api
+    container_name: fiberflow-api
     restart: unless-stopped
     network_mode: "service:fiber"
     depends_on:

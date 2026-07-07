@@ -1,4 +1,4 @@
-HTTP gateway that proxies Fiber RPC, serves Better Auth, and connects to Neon via Drizzle.
+FiberFlow API server that proxies Fiber RPC, serves Better Auth, and connects to Neon via Drizzle.
 
 Built with [Bun](https://bun.sh), [Hono](https://hono.dev), [Drizzle ORM](https://orm.drizzle.team), and [Better Auth](https://better-auth.com).
 

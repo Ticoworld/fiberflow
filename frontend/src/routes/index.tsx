@@ -17,7 +17,7 @@ function HomePage() {
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 p-6">
       <div className="max-w-lg space-y-3 text-center">
         <h1 className="text-3xl font-semibold tracking-tight">
-          Fiberflow Gateway
+          FiberFlow
         </h1>
         <p className="text-muted-foreground">
           Manage your Fiber Network Node with a simple dashboard for node info,

@@ -1,4 +1,4 @@
-# fiberflow-gateway
+# FiberFlow
 
 Run a [Fiber Network Node](https://github.com/nervosnetwork/fiber) with Docker in a few steps.
 
@@ -7,8 +7,8 @@ Run a [Fiber Network Node](https://github.com/nervosnetwork/fiber) with Docker i
 **Prerequisites:** [Docker](https://docs.docker.com/get-docker/) installed.
 
 ```bash
-git clone <this-repo>
-cd fiberflow-gateway
+git clone <this-repo> fiberflow
+cd fiberflow
 
 cp .env.example .env          # set FIBER_SECRET_KEY_PASSWORD
 mkdir -p data/ckb
@@ -17,11 +17,11 @@ mkdir -p data/ckb
 ./start.sh
 ```
 
-That's it. P2P listens on port **8228**. The HTTP gateway listens on port **3000**.
+That's it. P2P listens on port **8228**. The FiberFlow API listens on port **3000**.
 
-## HTTP gateway
+## FiberFlow API
 
-The gateway container shares the Fiber container's network, so it can reach Fiber RPC on `127.0.0.1:8227` without exposing RPC to the host.
+The API container shares the Fiber container's network, so it can reach Fiber RPC on `127.0.0.1:8227` without exposing RPC to the host.
 
 ```bash
 curl http://localhost:3000/health
@@ -36,11 +36,11 @@ Optional query params for `/rpc/list-channels`:
 - `include_closed=true` — include closed channels
 - `peer_id=<pubkey>` — filter by peer
 
-Fiber RPC is not exposed publicly — only the gateway port is. Add authentication to the gateway before deploying to production.
+Fiber RPC is not exposed publicly — only the API port is. Add authentication before deploying to production.
 
 ### Local development (without Docker)
 
-**Gateway server** (Fiber RPC + Drizzle + Better Auth):
+**FiberFlow server** (Fiber RPC + Drizzle + Better Auth):
 
 ```bash
 cd server
@@ -73,7 +73,7 @@ Edit `config/testnet.yml` or `config/mainnet.yml` to customize your node (e.g. a
 
 ```bash
 docker compose logs -f                    # follow logs
-docker compose logs -f gateway            # gateway logs only
+docker compose logs -f gateway            # API logs only
 docker compose exec fiber fnn-cli info    # node info
 docker compose exec fiber fnn-cli channel list_channels
 docker compose down                       # stop
@@ -107,4 +107,4 @@ When a new [Fiber release](https://github.com/nervosnetwork/fiber/releases) is p
 
 Your config (`config/testnet.yml` or `config/mainnet.yml`) and wallet key (`data/ckb/key`) stay as-is — only the container image changes. Newer Fiber versions migrate the database automatically on startup.
 
-If you also `git pull` this repo, you may get updated config templates — review `config/*.yml` for any new options, but you may need to rebuild the gateway with `docker compose up -d --build`.
+If you also `git pull` this repo, you may get updated config templates — review `config/*.yml` for any new options, but you may need to rebuild the API with `docker compose up -d --build`.

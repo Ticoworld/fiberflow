@@ -32,7 +32,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'Fiberflow Gateway',
+        title: 'FiberFlow',
       },
     ],
     links: [
