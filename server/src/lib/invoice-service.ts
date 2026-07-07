@@ -1,17 +1,14 @@
-import { desc, eq } from 'drizzle-orm'
-import { Hono } from 'hono'
+import { and, desc, eq } from 'drizzle-orm'
 import { HTTPException } from 'hono/http-exception'
 
 import { db } from '../db'
 import { invoice } from '../db/schema'
 import { fiberRpc } from '../fiber-rpc'
-import { requireStoreForUser } from '../lib/store'
-import { type AuthVariables, requireAuth } from '../middleware/auth'
 
-type NewInvoiceBody = {
-  amount?: string
-  amountInUSD?: number
-  currency?: string
+export type CreateInvoiceInput = {
+  amount: string
+  amountInUSD: number
+  currency: string
   description?: string
   expirySeconds?: number
   udtTypeScript?: string
@@ -30,33 +27,7 @@ type FiberInvoiceResult = {
   }
 }
 
-export const invoiceRoutes = new Hono<{ Variables: AuthVariables }>()
-
-invoiceRoutes.use('*', requireAuth)
-
-invoiceRoutes.get('/', async (c) => {
-  const userId = c.get('userId')
-  const storeId = c.req.param('storeId')
-
-  await requireStoreForUser(storeId, userId)
-
-  const invoices = await db
-    .select()
-    .from(invoice)
-    .where(eq(invoice.storeId, storeId))
-    .orderBy(desc(invoice.createdAt))
-
-  return c.json({ invoices })
-})
-
-invoiceRoutes.post('/', async (c) => {
-  const userId = c.get('userId')
-  const storeId = c.req.param('storeId')
-
-  await requireStoreForUser(storeId, userId)
-
-  const body = await c.req.json<NewInvoiceBody>()
-
+export function validateCreateInvoiceInput(body: Partial<CreateInvoiceInput>) {
   if (!body.amount?.trim()) {
     throw new HTTPException(400, { message: 'amount is required' })
   }
@@ -68,6 +39,10 @@ invoiceRoutes.post('/', async (c) => {
   if (body.amountInUSD === undefined || body.amountInUSD < 0) {
     throw new HTTPException(400, { message: 'amountInUSD is required' })
   }
+}
+
+export async function createInvoice(storeId: string, body: CreateInvoiceInput) {
+  validateCreateInvoiceInput(body)
 
   const expirySeconds = body.expirySeconds ?? 3600
 
@@ -106,5 +81,22 @@ invoiceRoutes.post('/', async (c) => {
     })
     .returning()
 
-  return c.json({ invoice: created }, 201)
-})
+  return created
+}
+
+export async function listInvoicesForStore(storeId: string) {
+  return db
+    .select()
+    .from(invoice)
+    .where(eq(invoice.storeId, storeId))
+    .orderBy(desc(invoice.createdAt))
+}
+
+export async function getInvoiceForStore(storeId: string, invoiceId: number) {
+  const [record] = await db
+    .select()
+    .from(invoice)
+    .where(and(eq(invoice.id, invoiceId), eq(invoice.storeId, storeId)))
+
+  return record ?? null
+}

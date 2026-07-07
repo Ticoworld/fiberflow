@@ -2,11 +2,11 @@ import { and, desc, eq } from 'drizzle-orm'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 
-import { db } from '../db'
-import { apiKey } from '../db/schema'
-import { generateApiKey } from '../lib/api-key'
-import { requireStoreForUser } from '../lib/store'
-import { type AuthVariables, requireAuth } from '../middleware/auth'
+import { db } from '../../db'
+import { apiKey } from '../../db/schema'
+import { generateApiKey } from '../../lib/api-key'
+import { requireStoreForUser } from '../../lib/store'
+import { type AuthVariables, requireAuth } from '../../middleware/auth'
 
 export const apiKeyRoutes = new Hono<{ Variables: AuthVariables }>()
 

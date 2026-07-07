@@ -5,7 +5,8 @@ import { cors } from 'hono/cors'
 import { HTTPException } from 'hono/http-exception'
 
 import { FiberRpcError } from './fiber-rpc'
-import { apiRoutes } from './routes/api'
+import { dashboardRoutes } from './routes/dashboard'
+import { integrationRoutes } from './routes/integration'
 import { rpcRoutes } from './routes/rpc'
 
 const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
@@ -40,7 +41,8 @@ app.get('/health', (c) => {
   return c.json({ status: 'ok' })
 })
 
-app.route('/api', apiRoutes)
+app.route('/api', dashboardRoutes)
+app.route('/v1', integrationRoutes)
 app.route('/rpc', rpcRoutes)
 
 const port = Number(process.env.PORT ?? 3000)
