@@ -8,6 +8,7 @@ import {
   type FiberNewInvoiceParams,
   type FiberNewInvoiceResult,
   getInvoiceExpirySecondsFromAttrs,
+  toFiberHexUInt,
 } from './fiber-invoice'
 import { formatRpcCurrency, getInvoiceCurrency } from './fiber-network'
 import { usdToCents, usdToShannons } from './invoice-amount'
@@ -43,9 +44,9 @@ export async function createInvoice(storeId: string, body: CreateInvoiceInput) {
   const amountInUSD = usdToCents(body.amountInUSD)
 
   const rpcParams: FiberNewInvoiceParams = {
-    amount,
+    amount: toFiberHexUInt(amount),
     currency: formatRpcCurrency(currency),
-    expiry: DEFAULT_EXPIRY_SECONDS,
+    expiry: toFiberHexUInt(DEFAULT_EXPIRY_SECONDS),
     ...(body.description ? { description: body.description } : {}),
   }
 
@@ -66,6 +67,7 @@ export async function createInvoice(storeId: string, body: CreateInvoiceInput) {
     .values({
       paymentHash: result.invoice.data.payment_hash,
       invoiceAddress: result.invoice_address,
+      signature: result.invoice.signature ?? null,
       amount: result.invoice.amount,
       amountInUSD,
       currency,

@@ -46,7 +46,7 @@ invoiceRoutes.post('/', async (c) => {
 
   await requireStoreForUser(storeId, userId)
 
-  const body = await c.req.json<Partial<CreateInvoiceInput>>()
+  const body = await c.req.json<CreateInvoiceInput>()
 
   const created = await createInvoice(storeId, {
     amountInUSD: body.amountInUSD ?? -1,

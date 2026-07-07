@@ -13,14 +13,16 @@ export type FiberScript = {
 }
 
 export type FiberInvoiceAttribute =
-  | { FinalHtlcMinimumExpiryDelta: FiberHexString }
-  | { ExpiryTime: FiberHexString }
-  | { Description: string }
-  | { FallbackAddr: string }
-  | { UdtScript: FiberHexString }
-  | { PayeePublicKey: string }
-  | { HashAlgorithm: number }
-  | { Feature: FiberHexString }
+  | { final_htlc_timeout: FiberHexString }
+  | { final_htlc_minimum_expiry_delta: FiberHexString }
+  | { expiry_time: FiberHexString }
+  | { description: string }
+  | { fallback_addr: string }
+  | { udt_script: FiberHexString }
+  | { payee_public_key: string }
+  | { hash_algorithm: FiberHashAlgorithm }
+  | { feature: FiberHexString }
+  | { payment_secret: string }
 
 export type FiberInvoiceData = {
   timestamp: FiberHexString
@@ -42,18 +44,29 @@ export type FiberNewInvoiceResult = {
 }
 
 export type FiberNewInvoiceParams = {
-  amount: string | FiberHexString
+  amount: FiberHexString
   currency: FiberRpcCurrency
   description?: string
   payment_preimage?: FiberHexString
   payment_hash?: FiberHexString
-  expiry?: number
+  expiry?: FiberHexString
   fallback_address?: string
-  final_expiry_delta?: number
+  final_expiry_delta?: FiberHexString
   udt_type_script?: FiberScript
   hash_algorithm?: FiberHashAlgorithm
   allow_mpp?: boolean
   allow_trampoline_routing?: boolean
+}
+
+/** Encode an integer for Fiber JSON-RPC (requires `0x`-prefixed hex, no leading zeros). */
+export function toFiberHexUInt(value: number | bigint | string): FiberHexString {
+  const parsed = typeof value === 'bigint' ? value : BigInt(value)
+
+  if (parsed < 0n) {
+    throw new Error(`Fiber hex values must be non-negative: ${value}`)
+  }
+
+  return `0x${parsed.toString(16)}`
 }
 
 /** Parse a Fiber RPC u128/u64 hex (or decimal) string to a safe JS number. */
@@ -71,8 +84,8 @@ export function getInvoiceExpirySecondsFromAttrs(
   attrs: FiberInvoiceAttribute[],
 ): number | undefined {
   for (const attr of attrs) {
-    if ('ExpiryTime' in attr) {
-      return parseFiberHexUInt(attr.ExpiryTime)
+    if ('expiry_time' in attr) {
+      return parseFiberHexUInt(attr.expiry_time)
     }
   }
 

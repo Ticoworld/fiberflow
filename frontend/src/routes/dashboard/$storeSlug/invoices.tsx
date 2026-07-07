@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createFileRoute, getRouteApi } from '@tanstack/react-router'
 import { format } from 'date-fns'
-import { FileText, Plus } from 'lucide-react'
+import { Copy, FileText, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -49,17 +49,24 @@ import {
   createInvoice,
   fetchInvoices,
   formatAmountInUsd,
-  getInvoiceExpiresAt,
 } from '#/lib/invoices-api.ts'
 import { fetchStoreBySlug } from '#/lib/stores-api.ts'
 
 const createInvoiceSchema = z.object({
-  amountInUSD: z.number({ error: 'Amount is required' }).gt(0, 'Amount must be greater than 0'),
+  amountInUSD: z
+    .string()
+    .min(1, 'Amount is required'),
   orderId: z.string().min(1, 'Order ID is required'),
   customerEmail: z.email('Enter a valid email address'),
   description: z.string().optional(),
 })
 
+type CreateInvoiceFormInput = {
+  amountInUSD: string
+  orderId: string
+  customerEmail: string
+  description?: string
+}
 type CreateInvoiceFormValues = z.infer<typeof createInvoiceSchema>
 
 const storeRouteApi = getRouteApi('/dashboard/$storeSlug')
@@ -91,10 +98,6 @@ function invoiceStatusVariant(status: InvoiceStatus) {
   }
 }
 
-function formatCurrencyLabel(currency: Invoice['currency']) {
-  return currency.toUpperCase()
-}
-
 function InvoicesPage() {
   const { store } = storeRouteApi.useLoaderData()
   const initialInvoices = Route.useLoaderData().invoices
@@ -102,10 +105,10 @@ function InvoicesPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const form = useForm<CreateInvoiceFormValues>({
+  const form = useForm<CreateInvoiceFormInput, unknown, CreateInvoiceFormValues>({
     resolver: zodResolver(createInvoiceSchema),
     defaultValues: {
-      amountInUSD: undefined as number | undefined,
+      amountInUSD: '',
       orderId: '',
       customerEmail: '',
       description: '',
@@ -115,9 +118,10 @@ function InvoicesPage() {
   async function onSubmit(values: CreateInvoiceFormValues) {
     setIsSubmitting(true)
 
+
     try {
       const invoice = await createInvoice(store.id, {
-        amountInUSD: values.amountInUSD,
+        amountInUSD: Number(values.amountInUSD),
         orderId: values.orderId.trim(),
         customerEmail: values.customerEmail.trim(),
         description: values.description?.trim() || undefined,
@@ -138,7 +142,7 @@ function InvoicesPage() {
     <>
       <DashboardHeader
         title="Invoices"
-        description={`Manage payment invoices for ${store.name}`}
+        description={`Manage payment invoices`}
       />
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
         <div className="flex items-center justify-end">
@@ -163,11 +167,10 @@ function InvoicesPage() {
                     <Input
                       id="amountInUSD"
                       type="number"
-                      min={0.01}
-                      step="0.01"
+                      inputMode="decimal"
                       placeholder="10.00"
                       aria-invalid={!!form.formState.errors.amountInUSD}
-                      {...form.register('amountInUSD', { valueAsNumber: true })}
+                      {...form.register('amountInUSD')}
                     />
                     <FieldError errors={[form.formState.errors.amountInUSD]} />
                   </Field>
@@ -254,15 +257,24 @@ function InvoicesPage() {
 }
 
 function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
+  async function copyInvoiceAddress(address: string) {
+    try {
+      await navigator.clipboard.writeText(address)
+      toast.success('Payment address copied')
+    } catch {
+      toast.error('Unable to copy payment address')
+    }
+  }
+
   return (
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Order ID</TableHead>
           <TableHead>Customer</TableHead>
-          <TableHead>Amount</TableHead>
+          <TableHead>Amount (USD)</TableHead>
           <TableHead>Status</TableHead>
-          <TableHead>Expires</TableHead>
+          <TableHead>Payment Address</TableHead>
           <TableHead>Created</TableHead>
         </TableRow>
       </TableHeader>
@@ -274,14 +286,33 @@ function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
               {invoice.customerEmail}
             </TableCell>
             <TableCell>
-              ${formatAmountInUsd(invoice.amountInUSD)} ({invoice.amount}{' '}
-              {formatCurrencyLabel(invoice.currency)})
+              ${formatAmountInUsd(invoice.amountInUSD)} 
+              
             </TableCell>
             <TableCell>
               <Badge variant={invoiceStatusVariant(invoice.status)}>{invoice.status}</Badge>
             </TableCell>
-            <TableCell className="text-muted-foreground">
-              {format(getInvoiceExpiresAt(invoice), 'MMM d, yyyy HH:mm')}
+            <TableCell className="max-w-[280px] text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <span className="min-w-0 truncate" title={invoice.invoiceAddress ?? undefined}>
+                  {invoice.invoiceAddress ?? '—'}
+                </span>
+                {invoice.invoiceAddress ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-7 shrink-0"
+                    aria-label="Copy payment address"
+                    onClick={() => {
+                      if (!invoice.invoiceAddress) return
+                      void copyInvoiceAddress(invoice.invoiceAddress)
+                    }}
+                  >
+                    <Copy className="size-3.5" />
+                  </Button>
+                ) : null}
+              </div>
             </TableCell>
             <TableCell className="text-muted-foreground">
               {format(new Date(invoice.createdAt), 'MMM d, yyyy HH:mm')}

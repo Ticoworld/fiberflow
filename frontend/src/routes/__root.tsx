@@ -1,5 +1,6 @@
 import {
   HeadContent,
+  Link,
   Scripts,
   createRootRouteWithContext,
 } from '@tanstack/react-router'
@@ -8,6 +9,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import { Toaster } from 'sonner'
 
+import { Button } from '#/components/ui/button.tsx'
 import { TooltipProvider } from "@/components/ui/tooltip"
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
@@ -42,8 +44,23 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       },
     ],
   }),
+  notFoundComponent: NotFoundPage,
   shellComponent: RootDocument,
 })
+
+function NotFoundPage() {
+  return (
+    <div className="flex min-h-svh flex-col items-center justify-center gap-4 p-6 text-center">
+      <h1 className="text-2xl font-semibold tracking-tight">Page not found</h1>
+      <p className="max-w-md text-muted-foreground">
+        The page you are looking for does not exist or may have been moved.
+      </p>
+      <Button asChild>
+        <Link to="/">Go home</Link>
+      </Button>
+    </div>
+  )
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (

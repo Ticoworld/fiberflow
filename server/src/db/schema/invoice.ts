@@ -36,6 +36,7 @@ export const invoice = pgTable(
     expirySeconds: bigint('expiry_seconds', { mode: 'number' }).notNull().default(7884000), // 91 days
     paymentHash: text('payment_hash').unique(),
     invoiceAddress: text('invoice_address'),
+    signature: text('signature'),
     status: invoiceStatusEnum('status').notNull().default('Open'),
     storeId: uuid('store_id').references(() => store.id, { onDelete: 'cascade' }),
     orderId: text('order_id').unique().notNull(),

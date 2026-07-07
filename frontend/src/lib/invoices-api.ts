@@ -13,6 +13,7 @@ export type Invoice = {
   expirySeconds: number
   paymentHash: string | null
   invoiceAddress: string | null
+  signature: string | null
   status: InvoiceStatus
   storeId: string | null
   orderId: string
@@ -58,6 +59,8 @@ export async function createInvoice(
     body: JSON.stringify(input),
   })
 
+
+
   if (!response.ok) {
     throw new Error(await parseError(response))
   }
@@ -68,6 +71,17 @@ export async function createInvoice(
 
 export function formatAmountInUsd(amountInUsdCents: number): string {
   return (amountInUsdCents / 100).toFixed(2)
+}
+
+export function formatInvoiceCurrency(currency: InvoiceCurrency): string {
+  return currency.toUpperCase()
+}
+
+export function formatFiberAmount(amount: string): string {
+  const shannons = amount.startsWith('0x') ? BigInt(amount) : BigInt(amount)
+  const ckb = Number(shannons) / 100_000_000
+
+  return `${ckb.toLocaleString(undefined, { maximumFractionDigits: 8 })} CKB`
 }
 
 export function getInvoiceExpiresAt(invoice: Invoice): Date {
