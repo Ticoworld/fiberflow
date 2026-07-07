@@ -7,7 +7,7 @@ Run a [Fiber Network Node](https://github.com/nervosnetwork/fiber) with Docker i
 **Prerequisites:** [Docker](https://docs.docker.com/get-docker/) installed.
 
 ```bash
-git clone <this-repo> fiberflow
+git clone https://github.com/chukwuma619/fiberflow.git
 cd fiberflow
 
 cp .env.example .env          # set FIBER_SECRET_KEY_PASSWORD
