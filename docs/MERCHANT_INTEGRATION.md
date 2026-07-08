@@ -1,29 +1,54 @@
-# Merchant integration guide
+# Merchant / e-commerce integration
 
 FiberFlow lets your store accept Fiber payments. Your backend creates invoices via the API, redirects customers to the hosted checkout page, and fulfills orders when `invoice.paid` webhooks arrive.
+
+This is a **generic REST + redirect + webhook** integration (similar in shape to Stripe Checkout). There is no official Shopify or WooCommerce plugin — any stack that can call HTTPS APIs and receive webhooks works.
+
+If you are running the Fiber node yourself, complete [SELF_HOSTING.md](SELF_HOSTING.md) first (node, wallet key, channels). This guide assumes FiberFlow is already running.
+
+---
 
 ## Domains
 
 | Subdomain | Purpose |
 |-----------|---------|
 | `app.example.com` | Merchant dashboard |
-| `api.example.com` | Merchant API + webhooks delivery |
+| `api.example.com` | Merchant API + webhook delivery |
 | `checkout.example.com` | Customer payment page |
 
 Local development uses `http://localhost:5173` (app + checkout) and `http://localhost:3000` (api).
+
+---
+
+## Typical checkout flow
+
+```
+Your store                FiberFlow API           Customer
+    |                          |                     |
+    |-- POST /v1/invoices ---->|                     |
+    |<-- payment_url ----------|                     |
+    |-- redirect ----------------------------------->|
+    |                          |<-- pays on Fiber ---|
+    |<-- POST invoice.paid ----|                     |
+    |-- fulfill order          |                     |
+```
+
+On the checkout page, the customer sees the amount, a **QR code**, and a **payment address**. They pay with **any Fiber-compatible wallet** that can send to that address. FiberFlow does not ship a built-in wallet picker.
+
+---
 
 ## Quick start
 
 ### 1. Create an API key
 
-1. Sign in to the FiberFlow dashboard.
-2. Open **Settings → API keys**.
-3. Create a key and copy the token (`ffg_...`). It is shown once.
+1. Sign in to the FiberFlow dashboard (`app…` or `http://localhost:5173`).
+2. Open **Settings**.
+3. Create an API key and copy the token (`ffg_...`). It is shown once.
 
 ### 2. Add a webhook endpoint
 
-1. Open **Webhooks** in the dashboard.
-2. Add your server URL (must be HTTPS in production).
+1. Open **Webhooks** in the sidebar (separate from Settings).
+2. Add your server URL (must be HTTPS in production; `http://localhost…` is allowed for local testing).
 3. Copy the signing secret (`whsec_...`).
 
 Fulfill orders on **`invoice.paid`** only. Other events are informational:
@@ -50,7 +75,7 @@ curl -X POST https://api.example.com/v1/invoices \
   }'
 ```
 
-Example response:
+Example response (`201`):
 
 ```json
 {
@@ -60,19 +85,29 @@ Example response:
     "order_id": "order_123",
     "status": "open",
     "amount_in_usd": 29.99,
-    "payment_url": "https://checkout.example.com/pay/0xabc...",
-    "invoice_address": "fiber1...",
+    "amount": "12345678",
+    "currency": "fibt",
     "payment_hash": "0xabc...",
+    "invoice_address": "fiber1...",
+    "payment_url": "https://checkout.example.com/pay/0xabc...",
+    "customer_email": "buyer@example.com",
+    "description": null,
+    "metadata": {},
     "success_url": "https://your-store.com/thanks?order=order_123",
     "cancel_url": null,
-    "metadata": {},
+    "expiry_seconds": 7884000,
     "created_at": "2026-07-08T12:00:00.000Z",
     "updated_at": "2026-07-08T12:00:00.000Z"
   }
 }
 ```
 
-Redirect the customer to `invoice.payment_url` to complete payment.
+Notes:
+
+- `amount_in_usd` is converted to CKB using a live price feed when the invoice is created.
+- `currency` is `fibt` on testnet, `fibb` on mainnet, `fibd` on devnet.
+- `amount` is the on-Fiber amount string (shannons / smallest unit as returned by the node).
+- Redirect the customer to `invoice.payment_url`.
 
 ### 4. Handle webhooks
 
@@ -106,7 +141,7 @@ Example `invoice.paid` body:
 }
 ```
 
-Return **HTTP 200** quickly. Process fulfillment asynchronously if needed.
+Return **HTTP 200** quickly. Process fulfillment asynchronously if needed. Failed deliveries are retried (up to 5 attempts with backoff).
 
 #### Verify signatures (Node.js)
 
@@ -146,20 +181,9 @@ export function verifyFiberFlowWebhook(rawBody, signatureHeader, secret) {
 
 See [`examples/node-webhook/`](../examples/node-webhook/) for a runnable receiver.
 
-## Typical checkout flow
+---
 
-```
-Your store                FiberFlow API           Customer
-    |                          |                     |
-    |-- POST /v1/invoices ---->|                     |
-    |<-- payment_url ----------|                     |
-    |-- redirect ----------------------------------->|
-    |                          |<-- pays on Fiber ---|
-    |<-- POST invoice.paid ----|                     |
-    |-- fulfill order          |                     |
-```
-
-## API reference (MVP)
+## API reference
 
 All merchant routes require:
 
@@ -170,20 +194,30 @@ Authorization: Bearer ffg_<your_api_key>
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/v1/invoices` | Create invoice |
+| `GET` | `/v1/invoices` | List invoices (`limit`, `starting_after`, `status`) |
 | `GET` | `/v1/invoices/:id` | Get invoice by id |
 | `GET` | `/v1/invoices/by-order/:orderId` | Get invoice by your order id |
+| `POST` | `/v1/invoices/:id/cancel` | Cancel an open invoice |
 
 ### Create invoice body
 
 | Field | Required | Description |
 |-------|----------|-------------|
 | `amount_in_usd` | Yes | Price in USD (e.g. `29.99`) |
-| `order_id` | Yes | Your unique order reference |
+| `order_id` | Yes | Your unique order reference (unique per store) |
 | `customer_email` | Yes | Customer email |
 | `description` | No | Payment description |
-| `success_url` | No | Redirect after payment on checkout page |
-| `cancel_url` | No | Stored on invoice (optional) |
-| `metadata` | No | Key-value strings for your app |
+| `success_url` | No | After payment, checkout redirects here (if set) |
+| `cancel_url` | No | Stored on the invoice and included in webhooks; **not** used by the checkout UI today |
+| `metadata` | No | Key-value strings for your app (max 50 keys; key ≤ 40 chars; value ≤ 500 chars) |
+
+### List query params
+
+| Param | Description |
+|-------|-------------|
+| `limit` | Page size |
+| `starting_after` | Invoice id cursor for pagination |
+| `status` | `open`, `received`, `paid`, `expired`, or `cancelled` |
 
 ### Errors
 
@@ -198,7 +232,26 @@ Authorization: Bearer ffg_<your_api_key>
 }
 ```
 
-## Environment variables
+---
+
+## Example: wire this into a store backend
+
+Pseudocode for a custom store (Node, Rails, Laravel, etc.):
+
+```text
+1. Customer clicks "Pay with Fiber" on your checkout.
+2. Your server creates an order in your DB (status = pending).
+3. Your server POST /v1/invoices with order_id, amount_in_usd, customer_email, success_url.
+4. Your server redirects the browser to payment_url.
+5. Webhook invoice.paid arrives → verify signature → mark order paid → ship / unlock download.
+6. Optionally GET /v1/invoices/by-order/:orderId if the customer returns before the webhook.
+```
+
+Idempotency tip: treat `order_id` as your correlation key. `order_id` must be unique per store; reuse returns an error.
+
+---
+
+## Environment variables (operators)
 
 **API server (`api.example.com`)**
 
@@ -206,29 +259,23 @@ Authorization: Bearer ffg_<your_api_key>
 BETTER_AUTH_URL=https://api.example.com
 CORS_ORIGIN=https://app.example.com,https://checkout.example.com
 PAYMENT_APP_URL=https://checkout.example.com
-AUTH_COOKIE_DOMAIN=example.com
-NODE_ENV=production
 ```
 
-**Dashboard (`app.example.com`)**
+**Dashboard / checkout frontend build**
 
 ```bash
 VITE_API_URL=https://api.example.com
 VITE_PAYMENT_APP_URL=https://checkout.example.com
 ```
 
-**Checkout (`checkout.example.com`)**
-
-```bash
-VITE_API_URL=https://api.example.com
-```
+---
 
 ## Testing locally
 
-1. Start the server and frontend (see root README).
-2. Create a store, API key, and webhook pointing to `examples/node-webhook`.
+1. Start Fiber + API and the frontend (see root [README](../README.md) and [SELF_HOSTING.md](SELF_HOSTING.md)).
+2. Create a store, API key, and webhook pointing at the example receiver.
 3. Create an invoice from the dashboard or curl.
-4. Open the payment link and pay on Fiber testnet.
+4. Open the payment link and pay on Fiber **testnet** (requires funded node + ready channels).
 5. Confirm your webhook receiver logs `invoice.paid`.
 
 ```bash
@@ -236,8 +283,6 @@ cd examples/node-webhook
 FIBERFLOW_WEBHOOK_SECRET=whsec_... bun run server.js
 ```
 
-Use [ngrok](https://ngrok.com) or similar to expose your local webhook receiver when testing against a hosted FiberFlow API.
+Use [ngrok](https://ngrok.com) or similar to expose your local webhook receiver when testing against a remote FiberFlow API.
 
-For automated checks, see [`docs/E2E_SMOKE_TEST.md`](../../docs/E2E_SMOKE_TEST.md).
-
-For production deployment, see [`docs/DEPLOY.md`](../../docs/DEPLOY.md).
+For production deployment, see [DEPLOY.md](DEPLOY.md).

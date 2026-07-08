@@ -103,7 +103,8 @@ export function StoreIntegrationCard({ apiKeyPreview }: StoreIntegrationCardProp
         <p className="text-sm text-muted-foreground">
           Full guide: <code className="text-xs">{MERCHANT_INTEGRATION_DOC_PATH}</code>
           {' · '}
-          Example receiver: <code className="text-xs">examples/node-webhook/</code>
+          Example receiver:{' '}
+          <code className="text-xs">examples/node-webhook/</code> in the FiberFlow repo.
         </p>
       </CardContent>
     </Card>

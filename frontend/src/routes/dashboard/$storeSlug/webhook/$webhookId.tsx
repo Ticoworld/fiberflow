@@ -289,8 +289,8 @@ function WebhookDetailPage() {
             <CardDescription>
               Read the raw body, verify the signature, then handle{' '}
               <code className="text-xs">invoice.paid</code>. See{' '}
-              <code className="text-xs">{MERCHANT_INTEGRATION_DOC_PATH}</code> and{' '}
-              <code className="text-xs">examples/node-webhook/</code>.
+              <code className="text-xs">{MERCHANT_INTEGRATION_DOC_PATH}</code> and the{' '}
+              <code className="text-xs">examples/node-webhook/</code> receiver in the repo.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">

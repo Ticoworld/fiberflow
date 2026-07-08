@@ -7,4 +7,8 @@ Production Fiber + API deployment uses the root [`docker-compose.yml`](../docker
 
 Run from the repo root: `./start.sh`
 
+Fiber RPC (`8227`) stays internal. Only P2P (`8228`) and the API (`GATEWAY_PORT`, default `3000`) are published.
+
+Operator guides: [`docs/SELF_HOSTING.md`](../docs/SELF_HOSTING.md), [`docs/DEPLOY.md`](../docs/DEPLOY.md).
+
 This directory is reserved for optional Fiber image customizations. The default setup does not require files here.

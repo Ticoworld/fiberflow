@@ -38,5 +38,6 @@ See [`../docs/DEPLOY.md`](../docs/DEPLOY.md) for the full production setup.
 | `bun run dev` | Dev server on port 5173 |
 | `bun run build` | Production build |
 | `bun run preview` | Preview production build |
-| `bun run test` | Vitest unit tests |
 | `bun run lint` | ESLint |
+
+Self-hosting and merchant setup: [`../docs/SELF_HOSTING.md`](../docs/SELF_HOSTING.md), [`../docs/MERCHANT_INTEGRATION.md`](../docs/MERCHANT_INTEGRATION.md).

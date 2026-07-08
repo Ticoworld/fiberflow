@@ -8,7 +8,9 @@ Deploy FiberFlow as three public services on one root domain:
 | `api.example.com` | API server + auth | `server/` (Docker via `./start.sh`) |
 | `checkout.example.com` | Customer payment page | `frontend/` (same build, different hostname) |
 
-The dashboard and checkout are the **same frontend codebase**. Deploy the build twice (or route both hostnames to one deployment) and set `VITE_PAYMENT_APP_URL` to the checkout origin so payment links always point at checkout.
+The dashboard and checkout are the **same frontend codebase**. Deploy the build twice (or route both hostnames to one deployment) and set `PAYMENT_APP_URL` / `VITE_PAYMENT_APP_URL` so payment links always point at the checkout origin.
+
+Before production DNS/TLS, complete node + wallet + channel setup in [SELF_HOSTING.md](SELF_HOSTING.md).
 
 ---
 
@@ -16,6 +18,7 @@ The dashboard and checkout are the **same frontend codebase**. Deploy the build 
 
 - PostgreSQL database (e.g. [Neon](https://neon.tech))
 - Fiber node reachable from the API (Docker `./start.sh` bundles Fiber + API)
+- Open payment channels on that node (see [SELF_HOSTING.md](SELF_HOSTING.md#payment-channels))
 - TLS certificates for all three subdomains
 - DNS A/CNAME records pointing to your hosts
 
@@ -33,21 +36,17 @@ BETTER_AUTH_SECRET=...                    # bunx @better-auth/cli secret
 BETTER_AUTH_URL=https://api.example.com
 CORS_ORIGIN=https://app.example.com,https://checkout.example.com
 PAYMENT_APP_URL=https://checkout.example.com
-AUTH_COOKIE_DOMAIN=example.com            # root domain for session cookies
 FIBER_RPC_URL=http://127.0.0.1:8227       # set automatically in Docker
 FIBER_NETWORK=testnet                     # or mainnet
-NODE_ENV=production
 PORT=3000
 ```
 
 | Variable | Purpose |
 |----------|---------|
 | `BETTER_AUTH_URL` | Public API URL — must match the hostname merchants and the dashboard call |
-| `CORS_ORIGIN` | Comma-separated browser origins (dashboard **and** checkout) |
-| `PAYMENT_APP_URL` | Checkout subdomain — used in `payment_url` on invoices |
-| `AUTH_COOKIE_DOMAIN` | Root domain so dashboard sessions work across `app` → `api` subdomains |
-
-When `BETTER_AUTH_URL` uses `https://`, the server enables secure cookies and cross-subdomain auth automatically (using `AUTH_COOKIE_DOMAIN` or deriving from the API hostname).
+| `CORS_ORIGIN` | Comma-separated browser origins (dashboard **and** checkout). Also used as Better Auth `trustedOrigins`. |
+| `PAYMENT_APP_URL` | Checkout origin — used when building `payment_url` on invoices |
+| `FIBER_NETWORK` | Must match the Fiber node (`testnet` → currency `fibt`, `mainnet` → `fibb`) |
 
 ### Database
 
@@ -63,7 +62,7 @@ From the repo root:
 
 ```bash
 cp .env.example .env          # FIBER_SECRET_KEY_PASSWORD, FIBER_NETWORK
-mkdir -p data/ckb && cp /path/to/key data/ckb/key
+mkdir -p data/ckb && # place key at data/ckb/key — see SELF_HOSTING.md
 cp server/.env.example server/.env   # fill in values above
 
 ./start.sh
@@ -92,7 +91,7 @@ cd server
 bun run start
 ```
 
-Set `FIBER_RPC_URL` to your Fiber node's RPC endpoint.
+Set `FIBER_RPC_URL` to your Fiber node's RPC endpoint (keep RPC off the public internet).
 
 ---
 
@@ -126,16 +125,31 @@ Verify checkout can reach the API (no CORS errors on `/public/invoices/:hash`).
 
 ---
 
-## 3. Post-deploy checks
+## 3. Auth cookies across subdomains
 
-```bash
-# Automated (against production API)
-FIBERFLOW_API_URL=https://api.example.com \
-FIBERFLOW_API_KEY=ffg_your_key \
-bun run smoke-test
-```
+Dashboard sessions use Better Auth against `BETTER_AUTH_URL` (the API host). The frontend must call the API with credentials included (already configured in the app).
 
-Manual checklist: [`E2E_SMOKE_TEST.md`](E2E_SMOKE_TEST.md) — repeat using production URLs.
+For `https://app.example.com` → `https://api.example.com`:
+
+1. Set `CORS_ORIGIN` to include both `https://app.example.com` and `https://checkout.example.com`.
+2. Use real HTTPS in production so browsers accept secure cookies.
+3. If login succeeds but the session disappears on refresh, confirm `BETTER_AUTH_URL` matches the public API URL and that the browser is not blocking third-party / cross-site cookies for your setup.
+
+---
+
+## 4. Post-deploy checks
+
+Manual checklist:
+
+| Check | Done |
+|-------|------|
+| `GET /health` returns 200 on production API | |
+| Dashboard signup/login on `app.*` | |
+| Fiber node online; channels ready | |
+| Create invoice returns `payment_url` on checkout subdomain | |
+| Payment page loads without auth | |
+| Real Fiber payment completes | |
+| `invoice.paid` webhook delivers | |
 
 ---
 
@@ -163,8 +177,8 @@ Adjust upstream ports to match your process manager.
 
 - Fiber RPC is **never** exposed publicly — only the HTTP API port
 - Webhook URLs must use **HTTPS** in production (HTTP allowed only for `localhost`)
-- Dashboard auth uses HttpOnly cookies with `SameSite=None; Secure` in production
-- Do not commit `.env` files or API keys
+- Do not commit `.env` files, API keys, or `data/ckb/key`
+- Back up `./data` (node identity, encrypted key, channel store)
 
 ---
 
@@ -172,23 +186,16 @@ Adjust upstream ports to match your process manager.
 
 | Symptom | Fix |
 |---------|-----|
-| Login works then session lost on refresh | Set `AUTH_COOKIE_DOMAIN` to root domain; confirm `CORS_ORIGIN` includes `https://app...` |
+| Login works then session lost on refresh | Confirm `BETTER_AUTH_URL` and `CORS_ORIGIN`; check browser cookie / SameSite behavior for cross-subdomain API calls |
 | CORS error on checkout | Add `https://checkout.example.com` to server `CORS_ORIGIN` |
 | `payment_url` points at wrong host | Set `PAYMENT_APP_URL=https://checkout.example.com` on API |
-| `502` on create invoice | Fiber node down or `FIBER_RPC_URL` unreachable |
+| `502` on create invoice | Fiber node down, `FIBER_RPC_URL` unreachable, or CKB price fetch failed |
 | Auth cookie not sent | Frontend must use `credentials: 'include'` (already set in `auth-client.ts`) |
-| Server fails on boot | Check production env validation — `DATABASE_URL`, `BETTER_AUTH_*`, `PAYMENT_APP_URL` required when `NODE_ENV=production` or `BETTER_AUTH_URL` is `https://` |
+| Server fails on boot | Check `DATABASE_URL` is set and Postgres is reachable |
 
 ---
 
-## Sign-off
+## Related docs
 
-| Check | Done |
-|-------|------|
-| `GET /health` returns 200 on production API | |
-| Dashboard signup/login on `app.*` | |
-| Create invoice returns `payment_url` on checkout subdomain | |
-| Payment page loads without auth | |
-| Real Fiber payment completes | |
-| `invoice.paid` webhook delivers | |
-| Smoke test passes against production API | |
+- [SELF_HOSTING.md](SELF_HOSTING.md) — node, wallet, channels  
+- [MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md) — store API and webhooks
