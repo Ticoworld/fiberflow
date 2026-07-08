@@ -20,8 +20,8 @@ function HomePage() {
           FiberFlow
         </h1>
         <p className="text-muted-foreground">
-          Manage your Fiber Network Node with a simple dashboard for node info,
-          channels, and peers.
+          Accept Fiber payments on your store with invoices, webhooks, and a
+          merchant API.
         </p>
       </div>
 

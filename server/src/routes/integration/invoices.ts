@@ -11,16 +11,8 @@ import {
   listInvoicesForStorePaginated,
 } from '../../lib/invoice-service'
 import {
-  beginIdempotentRequest,
-  completeIdempotentRequest,
-  hashRequestBody,
-  normalizeIdempotencyKey,
-  releaseIdempotentRequest,
-} from '../../lib/idempotency'
-import {
   apiError,
   fromHttpException,
-  idempotencyConflict,
   invalidRequest,
   isUniqueViolation,
   MerchantApiException,
@@ -108,13 +100,10 @@ invoiceRoutes.post('/:id/cancel', async (c) => {
 
 invoiceRoutes.post('/', async (c) => {
   const storeId = c.get('storeId')
-  const idempotencyKey = normalizeIdempotencyKey(c.req.header('Idempotency-Key'))
-  const rawBodyText = await c.req.text()
-  const requestHash = hashRequestBody(rawBodyText)
 
   let rawBody: Record<string, unknown>
   try {
-    const parsed: unknown = rawBodyText ? JSON.parse(rawBodyText) : {}
+    const parsed: unknown = await c.req.json()
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
       invalidRequest('Request body must be a JSON object.', undefined, 'invalid_json')
     }
@@ -124,31 +113,6 @@ invoiceRoutes.post('/', async (c) => {
   }
 
   const input = parseMerchantCreateInvoiceInput(rawBody)
-
-  if (idempotencyKey) {
-    const idempotency = await beginIdempotentRequest(storeId, idempotencyKey, requestHash)
-
-    if (idempotency.action === 'conflict') {
-      idempotencyConflict(
-        'Idempotency-Key was used with a different request body.',
-        'idempotency_key_mismatch',
-      )
-    }
-
-    if (idempotency.action === 'replay') {
-      return c.json(idempotency.body, idempotency.status as 201)
-    }
-
-    const created = await createMerchantInvoice(storeId, input, async () => {
-      await releaseIdempotentRequest(storeId, idempotencyKey)
-    })
-    const body = { invoice: created }
-
-    await completeIdempotentRequest(storeId, idempotencyKey, 201, body)
-
-    return c.json(body, 201)
-  }
-
   const created = await createMerchantInvoice(storeId, input)
 
   return c.json({ invoice: created }, 201)
@@ -157,16 +121,11 @@ invoiceRoutes.post('/', async (c) => {
 async function createMerchantInvoice(
   storeId: string,
   input: Parameters<typeof createInvoice>[1],
-  onFailure?: () => Promise<void>,
 ) {
   try {
     const created = await createInvoice(storeId, input)
     return serializeMerchantInvoice(created)
   } catch (error) {
-    if (onFailure) {
-      await onFailure()
-    }
-
     if (error instanceof MerchantApiException) {
       throw error
     }

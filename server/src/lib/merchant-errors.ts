@@ -5,7 +5,6 @@ export type MerchantErrorType =
   | 'authentication_error'
   | 'not_found_error'
   | 'api_error'
-  | 'idempotency_error'
 
 export type MerchantErrorBody = {
   error: {
@@ -69,18 +68,12 @@ export function apiError(message: string, code = 'api_error'): never {
   throw new MerchantApiException(502, 'api_error', code, message)
 }
 
-export function idempotencyConflict(message: string, code: string): never {
-  throw new MerchantApiException(409, 'idempotency_error', code, message)
-}
-
 function statusToErrorType(status: number): MerchantErrorType {
   switch (status) {
     case 401:
       return 'authentication_error'
     case 404:
       return 'not_found_error'
-    case 409:
-      return 'idempotency_error'
     case 502:
     case 503:
       return 'api_error'
