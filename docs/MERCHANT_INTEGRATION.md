@@ -7,9 +7,30 @@ Use FiberFlow like a checkout provider: create a payment, send the customer to p
 1. An **API key** (`ffg_...`) — Settings  
 2. A **webhook URL** on your store + the **signing secret** (`whsec_...`) — Webhooks  
 
-There is no Shopify or WooCommerce plugin yet. Any site that can call an HTTPS API and receive a webhook works. If a developer is wiring this up for you, give them this page plus your API key and webhook secret.
+There is no Shopify or WooCommerce plugin yet. Any site that can call an HTTPS API and receive a webhook works.
 
-If FiberFlow is not running yet, start with [SELF_HOSTING.md](SELF_HOSTING.md).
+If FiberFlow is not running yet, start with [SELF_HOSTING.md](SELF_HOSTING.md). For a public HTTPS setup, see [DEPLOY.md](DEPLOY.md).
+
+---
+
+## For store owners (no developer yet)
+
+You can still use FiberFlow today:
+
+1. Finish [SELF_HOSTING.md](SELF_HOSTING.md) (or [DEPLOY.md](DEPLOY.md) on a VPS).  
+2. Create invoices from the **dashboard** and send customers the payment link.  
+3. When you are ready for automatic checkout on your site, hire or ask a developer and give them:
+
+| Hand them | Where you get it |
+|-----------|------------------|
+| This document (`docs/MERCHANT_INTEGRATION.md`) | This repo |
+| Your API base URL | Local: `http://localhost:3000` — production: `https://api.yourdomain.com` |
+| API key (`ffg_...`) | Dashboard → Settings |
+| Webhook signing secret (`whsec_...`) | Dashboard → Webhooks |
+| Where to send webhooks | An HTTPS URL on **your** store that they will implement |
+| Reminder | Fulfill only on **`invoice.paid`**; verify the signature |
+
+Until that integration exists, treat dashboard invoices + payment links as a manual checkout path.
 
 ---
 
@@ -277,10 +298,10 @@ VITE_PAYMENT_APP_URL=https://checkout.example.com
 
 ## Testing locally
 
-1. Start Fiber + API and the frontend (see root [README](../README.md) and [SELF_HOSTING.md](SELF_HOSTING.md)).
-2. Create a store, API key, and webhook pointing at the example receiver.
-3. Create an invoice from the dashboard or curl.
-4. Open the payment link and pay on Fiber **testnet** (requires funded node + ready channels).
+1. Finish [SELF_HOSTING.md](SELF_HOSTING.md) through a **paid** test invoice (channel ready + Fiber-compatible wallet).  
+2. Create a store, API key, and webhook pointing at the example receiver.  
+3. Create an invoice from the dashboard or curl.  
+4. Open the payment link and pay on Fiber **testnet**.  
 5. Confirm your webhook receiver logs `invoice.paid`.
 
 ```bash

@@ -2,6 +2,10 @@
 
 This guide puts FiberFlow on a server so your store can accept Fiber payments in production.
 
+**Before you start:** finish a full local test on testnet ([SELF_HOSTING.md](SELF_HOSTING.md)), including one successful payment. Deploying is much easier when you already know funding, channels, and the dashboard work.
+
+**Who this guide is for:** someone who can SSH into a Linux server, edit config files, and point DNS at an IP. If that is new to you, use a managed VPS panel (DigitalOcean, Linode, Hetzner, etc.) and follow their “create Ubuntu droplet / instance” docs first, then come back here.
+
 **You will end up with**
 
 | Piece | What it is |
@@ -11,7 +15,7 @@ This guide puts FiberFlow on a server so your store can accept Fiber payments in
 | `https://checkout.example.com` | Customer payment page (`/pay/...`) |
 | VPS public IP, port **8228** | Fiber P2P (not a website — other Fiber nodes connect here) |
 
-The Fiber node and API run together in Docker on the VPS. The **frontend** (landing, dashboard, and checkout) is a separate container or process — one build serves all of those pages. Replace `example.com` with your domain everywhere below.
+The Fiber node and API run together in Docker on the VPS. The **frontend** (landing, dashboard, and checkout) is a **separate** container or process — it is not started by `./start.sh`. One frontend build serves all of those pages. Replace `example.com` with your domain everywhere below.
 
 ---
 
@@ -21,11 +25,11 @@ The Fiber node and API run together in Docker on the VPS. The **frontend** (land
 |------|--------|
 | A VPS | Ubuntu 22.04+ is a common choice. Give it enough RAM for Docker (plan on **2 GB+**) |
 | A public IPv4 address | Needed if you want other Fiber nodes to dial **your** node (see §2) |
-| A domain | Point DNS at the VPS |
-| Docker + Docker Compose | Install on the VPS |
-| Bun | Needed for `db:push`, and if you build the frontend without Docker |
-| Postgres | e.g. [Neon](https://neon.tech) (can be off-VPS) |
-| Testnet CKB (or mainnet CKB) | To fund the node and open a channel |
+| A domain | Buy/use any domain; you will create three DNS records in §6 |
+| Docker + Docker Compose | Install on the VPS (commands in §1) |
+| Bun | Needed for `db:push`, and if you build the frontend without Docker. You can run `db:push` from your laptop against the same Neon database |
+| Postgres | e.g. [Neon](https://neon.tech) (can be off-VPS — recommended) |
+| Testnet CKB (or mainnet CKB) | To fund the node and open a channel — same as local setup |
 
 Open these ports on the VPS firewall / cloud security group:
 
@@ -324,9 +328,12 @@ Nginx works the same way: proxy those three hostnames to `127.0.0.1:3000` (API) 
 
 ## After deploy: connect your store
 
-1. Dashboard **Settings** → create an API key  
-2. **Webhooks** → add your store’s HTTPS webhook URL  
-3. [MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md)  
+1. Open `https://example.com` → **Get started** / **Sign in** → create a store if needed  
+2. Dashboard **Settings** → create an API key  
+3. **Webhooks** → add your store’s HTTPS webhook URL  
+4. Wire checkout with [MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md) (or hand that page + keys to your developer)  
+
+You can also create invoices from the dashboard and share payment links until the store API is integrated.
 
 ---
 

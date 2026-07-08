@@ -4,18 +4,22 @@ Accept Fiber Network payments on your online store.
 
 FiberFlow gives you a landing page, merchant dashboard, checkout page, API, and webhooks — similar to Stripe Checkout, but for Fiber on Nervos CKB. You run it yourself (with your own wallet key). Customers pay with any Fiber-compatible wallet.
 
+**In plain terms:** your customer checks out → FiberFlow shows them a payment page → they pay over Fiber → your store gets a webhook and you fulfill the order. You keep the keys; there is no hosted FiberFlow cloud.
+
 ---
 
 ## Path to first payment
 
-| Step | Guide |
-|------|--------|
-| 1. Install, fund, open a channel, open the dashboard | **[docs/SELF_HOSTING.md](docs/SELF_HOSTING.md)** |
-| 2. Deploy on a VPS (Docker, public Fiber node, frontend, HTTPS) | **[docs/DEPLOY.md](docs/DEPLOY.md)** |
-| 3. Connect your e-commerce site | [docs/MERCHANT_INTEGRATION.md](docs/MERCHANT_INTEGRATION.md) |
-| 4. Sample webhook server | [examples/node-webhook/](examples/node-webhook/) |
+| Step | Guide | Who it’s for |
+|------|--------|--------------|
+| 1. Install locally, fund, open a channel, open the dashboard | **[docs/SELF_HOSTING.md](docs/SELF_HOSTING.md)** | Everyone — start here |
+| 2. Put FiberFlow on a VPS with HTTPS | **[docs/DEPLOY.md](docs/DEPLOY.md)** | When you’re ready for real customers |
+| 3. Connect your e-commerce site | [docs/MERCHANT_INTEGRATION.md](docs/MERCHANT_INTEGRATION.md) | You or your developer |
+| 4. Sample webhook server | [examples/node-webhook/](examples/node-webhook/) | Developers testing webhooks |
 
-Most people should start with the self-hosting guide and stay on **testnet** until a real test payment works.
+Most people should finish **step 1 on testnet** (including one successful test payment) before deploying or going to mainnet.
+
+**Store owners without a developer:** FiberFlow has no Shopify/WooCommerce plugin yet. You can still run FiberFlow and create invoices from the dashboard; wiring automatic checkout into your store needs someone who can call an HTTPS API. See the handoff section in [MERCHANT_INTEGRATION.md](docs/MERCHANT_INTEGRATION.md).
 
 ---
 
@@ -28,6 +32,8 @@ Customer checks out on your store
         → FiberFlow sends invoice.paid to your webhook
         → you fulfill the order
 ```
+
+A **payment channel** is required before customers can pay. Creating invoices alone is not enough — the self-hosting guide covers funding and opening a channel.
 
 ---
 
@@ -44,27 +50,26 @@ Customer checks out on your store
 
 ## Quick start
 
-You need [Docker](https://docs.docker.com/get-docker/), a Postgres database ([Neon](https://neon.tech) works), and [Bun](https://bun.sh) for the frontend.
+Follow **[docs/SELF_HOSTING.md](docs/SELF_HOSTING.md)** from the top. That guide walks through cloning, tools, wallet key, database, starting FiberFlow, opening a channel, and the dashboard.
+
+You will need:
+
+- [Docker](https://docs.docker.com/get-docker/)
+- A free [Neon](https://neon.tech) Postgres database (or any Postgres)
+- [Bun](https://bun.sh) (dashboard + database setup)
+- [`ckb-cli`](https://github.com/nervosnetwork/ckb-cli/releases) (create the node wallet key)
+- About **10,000 testnet CKB** from the [faucet](https://faucet.nervos.org)
+
+Minimal command outline (details and order matter — use the full guide):
 
 ```bash
 git clone https://github.com/chukwuma619/fiberflow.git
 cd fiberflow
-
-cp .env.example .env
-# Set FIBER_SECRET_KEY_PASSWORD
-
-mkdir -p data/ckb
-# Put your 64-character hex private key (no 0x) in data/ckb/key
-
-cp server/.env.example server/.env
-# Set DATABASE_URL and BETTER_AUTH_SECRET
-
+# … create data/ckb/key, copy .env files, bun run db:push …
 ./start.sh
+# … fund node, open channel, then …
+cd frontend && bun install && bun run dev
 ```
-
-Then follow **[docs/SELF_HOSTING.md](docs/SELF_HOSTING.md)** for funding, opening a channel, starting the dashboard, and connecting your store.
-
-Creating invoices is not enough — you must open a payment channel (covered in that guide) before customers can pay.
 
 ---
 

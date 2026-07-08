@@ -1,29 +1,58 @@
 # Get FiberFlow running
 
-Follow these steps in order. When you finish, you can accept Fiber payments from your online store.
+Follow these steps **in order**. When you finish, you can accept Fiber payments from your online store (on testnet first).
 
 **What you will have**
 
-1. FiberFlow running on your computer or server  
+1. FiberFlow running on your computer  
 2. A payment channel so customers can actually pay you  
 3. The landing page, a dashboard login, API key, and webhook for your store  
 
+**Who this guide is for**
+
+You should be comfortable opening a terminal and pasting commands. You do **not** need to be a blockchain expert. If a step asks for Docker, Bun, or Neon, use the short install notes below — each links to the official installer.
+
 On your laptop you do **not** need a public IP — your node connects out to the Fiber network. On a VPS, you should announce your public address so other nodes can reach you — see [DEPLOY.md](DEPLOY.md).
 
-If FiberFlow is already running and you only need to wire up a store, skip to [Connect your store](#6-connect-your-store) or open [MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md).
+If FiberFlow is already running and you only need to wire up a store, skip to [Connect your store](#8-connect-your-store) or open [MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md).
+
+---
+
+## Plain-language background (30 seconds)
+
+| Term | Meaning |
+|------|---------|
+| **CKB** | The coin on Nervos. You need some **testnet** CKB (fake money for testing) to open a channel. |
+| **Fiber** | A fast payment network on top of CKB (similar idea to Lightning on Bitcoin). |
+| **Payment channel** | A funded link between your Fiber node and another node. **Without an open channel, checkout cannot complete.** |
+| **FiberFlow** | Your self-hosted Stripe-like layer: dashboard, invoices, checkout page, webhooks. |
+
+Start on **testnet**. Switch to mainnet only after a full test payment works.
+
+---
+
+## 0. Clone the project
+
+```bash
+git clone https://github.com/chukwuma619/fiberflow.git
+cd fiberflow
+```
+
+All later commands assume you are in this folder (the repo root), unless a step says `cd server` or `cd frontend`.
 
 ---
 
 ## What you need
 
-| Item | Why |
-|------|-----|
-| [Docker](https://docs.docker.com/get-docker/) | Runs the Fiber node and FiberFlow API |
-| A free [Neon](https://neon.tech) Postgres database (or any Postgres) | Stores your account, invoices, and webhooks |
-| [Bun](https://bun.sh) | Runs the dashboard on your machine |
-| About **10,000 testnet CKB** | Funds your node so you can open a channel (use the [testnet faucet](https://faucet.nervos.org)) |
+| Item | Why | How to get it |
+|------|-----|----------------|
+| [Docker](https://docs.docker.com/get-docker/) | Runs the Fiber node and FiberFlow API | Install **Docker Desktop** (Mac/Windows) or Docker Engine (Linux). Open Docker and wait until it says it is running before you continue. |
+| [Bun](https://bun.sh) | Database setup + dashboard | On Mac/Linux: `curl -fsSL https://bun.sh/install \| bash` then open a **new** terminal. |
+| A free [Neon](https://neon.tech) Postgres database | Stores accounts, invoices, webhooks | Sign up → create a project → copy the connection string (`postgresql://…`). Use the **pooled** URL if Neon shows one. |
+| [`ckb-cli`](https://github.com/nervosnetwork/ckb-cli/releases) | Creates your node wallet key | Download the release for your OS, unzip it, and put `ckb-cli` on your PATH (or run it via the full path to the binary). |
+| About **10,000 testnet CKB** | Funds your node so you can open a channel | [faucet.nervos.org](https://faucet.nervos.org) after you have an address (step 1) |
 
-Start on **testnet**. Switch to mainnet only after a full test payment works.
+**Optional but useful later:** a Fiber-capable wallet so *you* can act as a test customer and pay a test invoice. See [§7 Test payment](#7-make-a-test-payment).
 
 ---
 
@@ -31,14 +60,46 @@ Start on **testnet**. Switch to mainnet only after a full test payment works.
 
 FiberFlow uses a CKB private key for the payment node. Keep this file private — it controls funds.
 
-Install [`ckb-cli`](https://github.com/nervosnetwork/ckb-cli/releases), then:
+### 1.1 Install `ckb-cli`
+
+1. Open [ckb-cli releases](https://github.com/nervosnetwork/ckb-cli/releases).  
+2. Download the archive for your machine (e.g. macOS arm64, Linux x86_64).  
+3. Unzip it. You should see a `ckb-cli` binary.  
+4. In a terminal, from the unzipped folder, check it works:
+
+```bash
+./ckb-cli --version
+```
+
+If that prints a version, you can use `./ckb-cli` in the commands below (or move it somewhere on your PATH and use `ckb-cli`).
+
+### 1.2 Create and export a key
+
+From the **FiberFlow repo root**:
 
 ```bash
 ckb-cli account new
-# Save the lock_arg from the output
+```
 
+You will be asked for a password (for the local keystore). Save it somewhere safe.
+
+The output includes a **`lock_arg`** that looks like a long hex string (often starting with `0x`). Copy it.
+
+Example shape (yours will differ):
+
+```text
+lock_arg: 0x1234abcd...
+```
+
+Export the key (replace with **your** lock_arg):
+
+```bash
 ckb-cli account export --lock-arg <YOUR_LOCK_ARG> --extended-privkey-path ./exported-key
+```
 
+Enter the same password when asked. Then:
+
+```bash
 mkdir -p data/ckb
 head -n 1 ./exported-key > data/ckb/key
 chmod 600 data/ckb/key
@@ -53,28 +114,34 @@ Check the address (you will send testnet CKB here):
 ckb-cli util key-info --privkey-path data/ckb/key
 ```
 
+Copy the **testnet address** from the output (it usually starts with `ckt…`). You need it for the faucet in step 4.
+
 **Rules**
 
 - Never commit `data/ckb/key` or `.env` to git  
-- Remember the password you set in the next step  
+- Remember the password you set in the next step (`FIBER_SECRET_KEY_PASSWORD`) — it is separate from the `ckb-cli` keystore password  
 - Back up the whole `./data` folder regularly  
 
 ---
 
 ## 2. Configure FiberFlow
 
+### 2.1 Root `.env` (Fiber node)
+
 ```bash
 cp .env.example .env
 ```
 
-In `.env`, set:
+Open `.env` in a text editor and set:
 
 ```bash
 FIBER_SECRET_KEY_PASSWORD=choose-a-strong-password
 FIBER_NETWORK=testnet
 ```
 
-Then:
+Do not leave the password as `change-me` — `./start.sh` will refuse to start.
+
+### 2.2 API `server/.env`
 
 ```bash
 cp server/.env.example server/.env
@@ -91,7 +158,15 @@ In `server/.env`, set at least:
 | `PAYMENT_APP_URL` | `http://localhost:5173` for local use |
 | `FIBER_NETWORK` | `testnet` (same as root `.env`) |
 
-Create the database tables:
+Generate the auth secret:
+
+```bash
+bunx @better-auth/cli secret
+```
+
+### 2.3 Create the database tables
+
+This step is required. Without it, the API cannot start correctly.
 
 ```bash
 cd server
@@ -99,6 +174,8 @@ bun install
 bun run db:push
 cd ..
 ```
+
+If `db:push` fails, double-check `DATABASE_URL` and that your laptop can reach Neon (no VPN blocking it).
 
 ---
 
@@ -109,6 +186,8 @@ From the repo root:
 ```bash
 ./start.sh
 ```
+
+The first run downloads Docker images and may take several minutes.
 
 Check that it is up:
 
@@ -123,9 +202,11 @@ You should see node info including a `pubkey` and your network (`testnet`).
 
 | Port | What it is |
 |------|------------|
-| **3000** | FiberFlow API (open this in a browser via the dashboard later) |
+| **3000** | FiberFlow API (the dashboard talks to this) |
 | **8228** | Fiber network connection |
 | **8227** | Internal only — do not expose |
+
+If something fails, see [If something goes wrong](#if-something-goes-wrong).
 
 ---
 
@@ -135,9 +216,22 @@ Invoices alone are not enough. Your node must be funded and connected to the Fib
 
 ### 4.1 Send testnet CKB to your node
 
-1. Copy the address from `ckb-cli util key-info` (or from `fnn-cli info`).  
-2. Get free testnet CKB from [faucet.nervos.org](https://faucet.nervos.org). Aim for about **10,000 CKB**.  
-3. Wait until the balance shows up before continuing.
+1. Copy the **testnet address** from `ckb-cli util key-info --privkey-path data/ckb/key` (or look for an address in `fnn-cli info`).  
+2. Open [faucet.nervos.org](https://faucet.nervos.org), paste the address, and request CKB. Aim for about **10,000 CKB**.  
+3. Confirm the funds arrived before continuing:
+
+```bash
+# Address balance on the CKB testnet explorer
+# https://explorer.nervos.org/aggron — paste your ckt… address
+```
+
+You can also re-check after the node has synced:
+
+```bash
+docker compose exec fiber fnn-cli info
+```
+
+Wait until the explorer (or node) shows a balance before opening a channel. Faucet credits can take a minute or two.
 
 ### 4.2 Connect to a public Fiber node
 
@@ -205,7 +299,7 @@ You do not need a special RUSD channel for normal FiberFlow checkout.
 ```bash
 cd frontend
 cp .env.example .env.local
-# VITE_API_URL=http://localhost:3000
+# Confirm VITE_API_URL=http://localhost:3000
 bun install
 bun run dev
 ```
@@ -215,7 +309,7 @@ Open [http://localhost:5173](http://localhost:5173):
 1. You should see the **FiberFlow landing page** (Sign in / Get started)  
 2. Create an account, then create a store (name + slug)  
 3. **Settings** → create an API key (`ffg_...`) — copy it once  
-4. **Webhooks** → add your store’s webhook URL  
+4. **Webhooks** → add your store’s webhook URL (for local testing, see [examples/node-webhook/](../examples/node-webhook/))  
 5. Create a small test invoice and open the payment link  
 
 If you are already signed in, `/` sends you straight to the dashboard.
@@ -224,7 +318,36 @@ If you are already signed in, `/` sends you straight to the dashboard.
 
 ---
 
-## 6. Connect your store
+## 6. (Optional) Local webhook receiver
+
+To see `invoice.paid` without a live store:
+
+```bash
+cd examples/node-webhook
+FIBERFLOW_WEBHOOK_SECRET=whsec_YOUR_SECRET bun run server.js
+```
+
+In the dashboard, set the webhook URL to `http://127.0.0.1:8787/webhooks/fiberflow` (same machine as the API). Details: [examples/node-webhook/README.md](../examples/node-webhook/README.md).
+
+---
+
+## 7. Make a test payment
+
+Until a small invoice is **paid**, you have not finished setup.
+
+1. In the dashboard, create an invoice for a tiny amount (for example `$0.10`).  
+2. Open the **payment link** (checkout page). You should see the amount, a QR code, and a Fiber payment address.  
+3. Pay it with a **Fiber-compatible wallet** that can send on **testnet**.
+
+**Finding a wallet:** Fiber wallets are still evolving. Start from [Fiber Network Resources](https://www.fiber.world/docs/quick-start/network-resources) and the [Fiber docs](https://www.fiber.world/docs/quick-start/run-a-node). For CKB testnet funds and explorers, use the [Nervos faucet](https://faucet.nervos.org) and [testnet explorer](https://explorer.nervos.org/aggron). JoyID ([testnet.joyid.dev](https://testnet.joyid.dev/)) is commonly used for CKB testnet; confirm your wallet can **pay a Fiber invoice / address** before relying on it for the test.
+
+4. Watch the invoice status become **paid**, and confirm your webhook logs `invoice.paid` if you set one up.
+
+If payment fails, wait a few more minutes after `ChannelReady`, confirm you are on **testnet** everywhere, and re-check `list_channels`.
+
+---
+
+## 8. Connect your store
 
 Your store only needs three things:
 
@@ -242,7 +365,7 @@ Customer checks out on your site
 
 Step-by-step API examples, webhook signature checks, and a sample server: **[MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md)** and **[examples/node-webhook/](../examples/node-webhook/)**.
 
-There is no Shopify/WooCommerce plugin yet. Any site that can call an HTTPS API and receive a webhook can integrate.
+There is no Shopify/WooCommerce plugin yet. Any site that can call an HTTPS API and receive a webhook can integrate. If you are not a developer, give that guide plus your API key and webhook secret to whoever builds your store checkout.
 
 ---
 
@@ -253,8 +376,10 @@ There is no Shopify/WooCommerce plugin yet. Any site that can call an HTTPS API 
 - [ ] A peer is connected and a channel is `ChannelReady`  
 - [ ] You can sign in to the dashboard and create a store  
 - [ ] A test invoice payment completes  
-- [ ] Your webhook receives `invoice.paid`  
+- [ ] Your webhook receives `invoice.paid` (if configured)  
 - [ ] `./data` is backed up  
+
+**Next:** deploy for real customers → [DEPLOY.md](DEPLOY.md). Then wire the store → [MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md).
 
 ---
 
@@ -263,14 +388,16 @@ There is no Shopify/WooCommerce plugin yet. Any site that can call an HTTPS API 
 | Problem | Fix |
 |---------|-----|
 | `./start.sh` says missing key | Create `data/ckb/key` (step 1) |
-| `./start.sh` says password | Set `FIBER_SECRET_KEY_PASSWORD` in `.env` |
-| API won’t start | Check `DATABASE_URL` and that Postgres is reachable |
+| `./start.sh` says password | Set `FIBER_SECRET_KEY_PASSWORD` in `.env` (not `change-me`) |
+| Docker errors / can’t pull images | Start Docker Desktop and wait until it is running; check internet |
+| API won’t start | Check `DATABASE_URL`, run `bun run db:push` in `server/`, confirm Postgres is reachable |
 | Can’t create invoices (`502`) | Wait for Fiber to finish starting; check internet (price feed) |
 | Invoice never becomes paid | Channel not ready, or wait a few minutes after opening; confirm testnet vs mainnet match |
-| `open_channel` fails | Fund at least ~500 CKB; connect the peer first |
+| `open_channel` fails | Fund at least ~500 CKB; connect the peer first; confirm faucet balance on the explorer |
 | `connect_peer` fails | Try the other public pubkey, or refresh peers from [Network Resources](https://www.fiber.world/docs/quick-start/network-resources) |
 | Browser CORS errors | Put your site origin in `CORS_ORIGIN` (local: `http://localhost:5173`; production: apex + checkout) |
 | Wrong payment link host | Set `PAYMENT_APP_URL` (and `VITE_PAYMENT_APP_URL` for production builds) |
+| `ckb-cli: command not found` | Install from [releases](https://github.com/nervosnetwork/ckb-cli/releases) and use `./ckb-cli` from the unzipped folder |
 
 ---
 
@@ -278,4 +405,3 @@ There is no Shopify/WooCommerce plugin yet. Any site that can call an HTTPS API 
 
 - Deploy on a VPS (Docker, public Fiber address, frontend, HTTPS): [DEPLOY.md](DEPLOY.md)  
 - Store API + webhooks: [MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md)  
-
