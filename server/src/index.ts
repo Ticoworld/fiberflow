@@ -7,6 +7,7 @@ import { HTTPException } from 'hono/http-exception'
 import { FiberRpcError } from './fiber-rpc'
 import { dashboardRoutes } from './routes/dashboard'
 import { integrationRoutes } from './routes/integration'
+import { publicRoutes } from './routes/public'
 import { startBackgroundWorkers } from './workers'
 
 const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173')
@@ -43,6 +44,7 @@ app.get('/health', (c) => {
 
 app.route('/api', dashboardRoutes)
 app.route('/v1', integrationRoutes)
+app.route('/public', publicRoutes)
 
 startBackgroundWorkers()
 

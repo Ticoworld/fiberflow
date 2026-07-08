@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createFileRoute, getRouteApi } from '@tanstack/react-router'
 import { format } from 'date-fns'
-import { Copy, FileText, Plus } from 'lucide-react'
+import { Copy, ExternalLink, FileText, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -49,6 +49,7 @@ import {
   createInvoice,
   fetchInvoices,
   formatAmountInUsd,
+  buildPaymentUrl,
 } from '#/lib/invoices-api.ts'
 import { fetchStoreBySlug } from '#/lib/stores-api.ts'
 
@@ -257,12 +258,12 @@ function InvoicesPage() {
 }
 
 function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
-  async function copyInvoiceAddress(address: string) {
+  async function copyText(value: string, successMessage: string) {
     try {
-      await navigator.clipboard.writeText(address)
-      toast.success('Payment address copied')
+      await navigator.clipboard.writeText(value)
+      toast.success(successMessage)
     } catch {
-      toast.error('Unable to copy payment address')
+      toast.error('Unable to copy to clipboard')
     }
   }
 
@@ -274,6 +275,7 @@ function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
           <TableHead>Customer</TableHead>
           <TableHead>Amount (USD)</TableHead>
           <TableHead>Status</TableHead>
+          <TableHead>Payment link</TableHead>
           <TableHead>Payment Address</TableHead>
           <TableHead>Created</TableHead>
         </TableRow>
@@ -292,6 +294,40 @@ function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
             <TableCell>
               <Badge variant={invoiceStatusVariant(invoice.status)}>{invoice.status}</Badge>
             </TableCell>
+            <TableCell>
+              {invoice.paymentHash ? (
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-7 shrink-0"
+                    aria-label="Copy payment link"
+                    onClick={() => void copyText(buildPaymentUrl(invoice.paymentHash!), 'Payment link copied')}
+                  >
+                    <Copy className="size-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-7 shrink-0"
+                    aria-label="Open payment page"
+                    asChild
+                  >
+                    <a
+                      href={buildPaymentUrl(invoice.paymentHash)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <ExternalLink className="size-3.5" />
+                    </a>
+                  </Button>
+                </div>
+              ) : (
+                '—'
+              )}
+            </TableCell>
             <TableCell className="max-w-[280px] text-muted-foreground">
               <div className="flex items-center gap-1">
                 <span className="min-w-0 truncate" title={invoice.invoiceAddress ?? undefined}>
@@ -306,7 +342,7 @@ function InvoicesTable({ invoices }: { invoices: Invoice[] }) {
                     aria-label="Copy payment address"
                     onClick={() => {
                       if (!invoice.invoiceAddress) return
-                      void copyInvoiceAddress(invoice.invoiceAddress)
+                      void copyText(invoice.invoiceAddress, 'Payment address copied')
                     }}
                   >
                     <Copy className="size-3.5" />

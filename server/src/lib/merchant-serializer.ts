@@ -1,6 +1,7 @@
 import type { Invoice, InvoiceStatus } from '../db/schema'
 import type { CreateInvoiceInput } from './invoice-service'
 import { invalidRequest } from './merchant-errors'
+import { buildPaymentUrl } from './payment-url'
 
 export type MerchantInvoiceStatus = 'open' | 'received' | 'paid' | 'expired' | 'cancelled'
 
@@ -14,6 +15,7 @@ export type MerchantInvoice = {
   currency: string
   payment_hash: string | null
   invoice_address: string | null
+  payment_url: string | null
   customer_email: string
   description: string | null
   metadata: Record<string, string>
@@ -89,6 +91,7 @@ export function serializeMerchantInvoice(invoice: Invoice): MerchantInvoice {
     currency: invoice.currency,
     payment_hash: invoice.paymentHash,
     invoice_address: invoice.invoiceAddress,
+    payment_url: invoice.paymentHash ? buildPaymentUrl(invoice.paymentHash) : null,
     customer_email: invoice.customerEmail,
     description: invoice.description,
     metadata: invoice.metadata ?? {},
@@ -108,6 +111,38 @@ export function serializeMerchantInvoiceList(
     object: 'list',
     data: invoices.map(serializeMerchantInvoice),
     has_more: hasMore,
+  }
+}
+
+export type PublicInvoice = {
+  object: 'invoice'
+  status: MerchantInvoiceStatus
+  amount_in_usd: number
+  amount: string
+  currency: string
+  payment_hash: string | null
+  invoice_address: string | null
+  description: string | null
+  expires_at: string
+  success_url: string | null
+}
+
+export function getInvoiceExpiresAt(invoice: Invoice): string {
+  return new Date(invoice.createdAt.getTime() + invoice.expirySeconds * 1000).toISOString()
+}
+
+export function serializePublicInvoice(invoice: Invoice): PublicInvoice {
+  return {
+    object: 'invoice',
+    status: toMerchantStatus(invoice.status),
+    amount_in_usd: invoice.amountInUSD / 100,
+    amount: invoice.amount,
+    currency: invoice.currency,
+    payment_hash: invoice.paymentHash,
+    invoice_address: invoice.invoiceAddress,
+    description: invoice.description,
+    expires_at: getInvoiceExpiresAt(invoice),
+    success_url: invoice.successUrl,
   }
 }
 

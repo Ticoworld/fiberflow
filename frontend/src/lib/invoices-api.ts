@@ -90,3 +90,9 @@ export function formatFiberAmount(amount: string): string {
 export function getInvoiceExpiresAt(invoice: Invoice): Date {
   return new Date(new Date(invoice.createdAt).getTime() + invoice.expirySeconds * 1000)
 }
+
+export function buildPaymentUrl(paymentHash: string): string {
+  const configured = import.meta.env.VITE_PAYMENT_APP_URL?.trim()
+  const base = configured || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:5173')
+  return `${base.replace(/\/$/, '')}/pay/${encodeURIComponent(paymentHash)}`
+}

@@ -275,6 +275,19 @@ export async function getInvoiceByOrderIdForStore(storeId: string, orderId: stri
   return syncInvoiceStatus(record, { always: true })
 }
 
+export async function getInvoiceByPaymentHash(paymentHash: string) {
+  const [record] = await db
+    .select()
+    .from(invoice)
+    .where(eq(invoice.paymentHash, paymentHash))
+
+  if (!record) {
+    return null
+  }
+
+  return syncInvoiceStatus(record, { always: true })
+}
+
 export async function cancelInvoiceForStore(storeId: string, invoiceId: number) {
   const record = await getInvoiceForStore(storeId, invoiceId)
 

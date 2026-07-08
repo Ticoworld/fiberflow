@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as PayPaymentHashRouteImport } from './routes/pay/$paymentHash'
 import { Route as DashboardStoreSlugRouteImport } from './routes/dashboard/$storeSlug'
 import { Route as DashboardStoreSlugIndexRouteImport } from './routes/dashboard/$storeSlug/index'
 import { Route as DashboardStoreSlugUserSettingsRouteImport } from './routes/dashboard/$storeSlug/user-settings'
@@ -52,6 +53,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DashboardRoute,
+} as any)
+const PayPaymentHashRoute = PayPaymentHashRouteImport.update({
+  id: '/pay/$paymentHash',
+  path: '/pay/$paymentHash',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardStoreSlugRoute = DashboardStoreSlugRouteImport.update({
   id: '/$storeSlug',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
   '/dashboard/$storeSlug': typeof DashboardStoreSlugRouteWithChildren
+  '/pay/$paymentHash': typeof PayPaymentHashRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/$storeSlug/invoices': typeof DashboardStoreSlugInvoicesRoute
   '/dashboard/$storeSlug/settings': typeof DashboardStoreSlugSettingsRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
+  '/pay/$paymentHash': typeof PayPaymentHashRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/$storeSlug/invoices': typeof DashboardStoreSlugInvoicesRoute
   '/dashboard/$storeSlug/settings': typeof DashboardStoreSlugSettingsRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/signup': typeof SignupRoute
   '/dashboard/$storeSlug': typeof DashboardStoreSlugRouteWithChildren
+  '/pay/$paymentHash': typeof PayPaymentHashRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/$storeSlug/invoices': typeof DashboardStoreSlugInvoicesRoute
   '/dashboard/$storeSlug/settings': typeof DashboardStoreSlugSettingsRoute
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/signup'
     | '/dashboard/$storeSlug'
+    | '/pay/$paymentHash'
     | '/dashboard/'
     | '/dashboard/$storeSlug/invoices'
     | '/dashboard/$storeSlug/settings'
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/signup'
+    | '/pay/$paymentHash'
     | '/dashboard'
     | '/dashboard/$storeSlug/invoices'
     | '/dashboard/$storeSlug/settings'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/signup'
     | '/dashboard/$storeSlug'
+    | '/pay/$paymentHash'
     | '/dashboard/'
     | '/dashboard/$storeSlug/invoices'
     | '/dashboard/$storeSlug/settings'
@@ -190,6 +202,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   SignupRoute: typeof SignupRoute
+  PayPaymentHashRoute: typeof PayPaymentHashRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -235,6 +248,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/'
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
+    }
+    '/pay/$paymentHash': {
+      id: '/pay/$paymentHash'
+      path: '/pay/$paymentHash'
+      fullPath: '/pay/$paymentHash'
+      preLoaderRoute: typeof PayPaymentHashRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/dashboard/$storeSlug': {
       id: '/dashboard/$storeSlug'
@@ -330,6 +350,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   SignupRoute: SignupRoute,
+  PayPaymentHashRoute: PayPaymentHashRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
