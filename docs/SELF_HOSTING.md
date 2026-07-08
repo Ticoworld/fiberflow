@@ -1,129 +1,108 @@
-# Self-hosting FiberFlow
+# Get FiberFlow running
 
-This guide is for operators who want to run FiberFlow on their own machine or server — with **their own Fiber node**, **CKB wallet key**, and **payment channels** — then connect an e-commerce site.
+Follow these steps in order. When you finish, you can accept Fiber payments from your online store.
 
-If you only need to plug a store into an API that someone else already hosts, start with [MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md) instead.
+**What you will have**
 
----
+1. FiberFlow running on your computer or server  
+2. A payment channel so customers can actually pay you  
+3. A dashboard login, API key, and webhook for your store  
 
-## What you will run
+On your laptop you do **not** need a public IP — your node connects out to the Fiber network. On a VPS, you should announce your public address so other nodes can reach you — see [DEPLOY.md](DEPLOY.md).
 
-| Component | You provide / run | Notes |
-|-----------|-------------------|--------|
-| Fiber node | Yes (via Docker in this repo) | Holds your key and channels |
-| FiberFlow API | Yes (Docker `gateway` service) | Talks to Fiber RPC internally |
-| Dashboard + checkout | Yes (build `frontend/`) | Same app, often two hostnames in production |
-| PostgreSQL | Yes (Neon, self-hosted, etc.) | Required for stores, invoices, auth |
-| Customer Fiber wallet | Customer’s responsibility | Checkout shows QR + address only |
-
-FiberFlow does **not** open channels for you, fund your node, or custody customer funds.
+If FiberFlow is already running and you only need to wire up a store, skip to [Connect your store](#6-connect-your-store) or open [MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md).
 
 ---
 
-## Prerequisites
+## What you need
 
-1. **Docker** — [Install Docker](https://docs.docker.com/get-docker/)
-2. **PostgreSQL** — any Postgres URL works; [Neon](https://neon.tech) is fine
-3. **CKB account + private key** — for the Fiber node wallet (see below)
-4. **Testnet CKB** (for testnet) — enough to open channels (official Fiber guides often use on the order of thousands of CKB for funding + channel open)
-5. **Public IP / port** (for a reachable node) — Fiber P2P uses **8228**; announce your address in config if peers should find you
-6. **Bun** — only needed if you run the frontend or API outside Docker ([bun.sh](https://bun.sh))
+| Item | Why |
+|------|-----|
+| [Docker](https://docs.docker.com/get-docker/) | Runs the Fiber node and FiberFlow API |
+| A free [Neon](https://neon.tech) Postgres database (or any Postgres) | Stores your account, invoices, and webhooks |
+| [Bun](https://bun.sh) | Runs the dashboard on your machine |
+| About **10,000 testnet CKB** | Funds your node so you can open a channel (use the [testnet faucet](https://faucet.nervos.org)) |
 
-Official Fiber references (keep these handy):
-
-- [Fiber repository](https://github.com/nervosnetwork/fiber)
-- [Connect to public testnet nodes](https://www.fiber.world/docs/quick-start/connect-nodes)
-- [Basic transfer example](https://www.fiber.world/docs/quick-start/basic-transfer)
+Start on **testnet**. Switch to mainnet only after a full test payment works.
 
 ---
 
-## 1. Prepare your CKB wallet key
+## 1. Create your wallet key
 
-The Fiber node needs a private key at:
-
-```
-data/ckb/key
-```
-
-**Format:** one line, **64 hex characters**, **no `0x` prefix**. On first start, Fiber encrypts this file using `FIBER_SECRET_KEY_PASSWORD`.
-
-### Create or export a key with `ckb-cli`
+FiberFlow uses a CKB private key for the payment node. Keep this file private — it controls funds.
 
 Install [`ckb-cli`](https://github.com/nervosnetwork/ckb-cli/releases), then:
 
 ```bash
-# Create an account (save the lock_arg from the output)
 ckb-cli account new
+# Save the lock_arg from the output
 
-# Export (replace with your lock_arg)
 ckb-cli account export --lock-arg <YOUR_LOCK_ARG> --extended-privkey-path ./exported-key
 
-# Fiber only needs the first line (the private key)
 mkdir -p data/ckb
 head -n 1 ./exported-key > data/ckb/key
 chmod 600 data/ckb/key
 rm ./exported-key
+```
 
-# Optional: verify
+`data/ckb/key` must be **one line**, **64 hex characters**, **no `0x`**.
+
+Check the address (you will send testnet CKB here):
+
+```bash
 ckb-cli util key-info --privkey-path data/ckb/key
 ```
 
-Fund this address on the network you will use (testnet faucet / mainnet transfer) **before** opening channels.
+**Rules**
 
-**Security**
-
-- Never commit `data/ckb/key` or `.env` to git.
-- Remember `FIBER_SECRET_KEY_PASSWORD`. Losing the password and the plaintext key can lock you out of funds.
-- Back up `./data` regularly (see [Fiber backup guide](https://www.fiber.world/docs/guide/backup)).
+- Never commit `data/ckb/key` or `.env` to git  
+- Remember the password you set in the next step  
+- Back up the whole `./data` folder regularly  
 
 ---
 
-## 2. Configure environment files
-
-### Root `.env` (Fiber + Docker)
+## 2. Configure FiberFlow
 
 ```bash
 cp .env.example .env
 ```
 
-Set at least:
+In `.env`, set:
 
-| Variable | Meaning |
-|----------|---------|
-| `FIBER_SECRET_KEY_PASSWORD` | Password used to encrypt/decrypt `data/ckb/key` |
-| `FIBER_NETWORK` | `testnet` (default) or `mainnet` |
-| `FIBER_VERSION` | Docker image tag for `nervos/fiber` |
-| `GATEWAY_PORT` | Host port for the API (default `3000`) |
+```bash
+FIBER_SECRET_KEY_PASSWORD=choose-a-strong-password
+FIBER_NETWORK=testnet
+```
 
-### `server/.env` (API)
+Then:
 
 ```bash
 cp server/.env.example server/.env
 ```
 
-| Variable | Required | Meaning |
-|----------|----------|---------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `BETTER_AUTH_SECRET` | Yes | Generate with `bunx @better-auth/cli secret` |
-| `BETTER_AUTH_URL` | Yes | Public URL of the API (`http://localhost:3000` locally) |
-| `CORS_ORIGIN` | Yes | Browser origins allowed (dashboard/checkout), comma-separated |
-| `PAYMENT_APP_URL` | Yes | Base URL used in invoice `payment_url` values |
-| `FIBER_RPC_URL` | Auto in Docker | `http://127.0.0.1:8227` |
-| `FIBER_NETWORK` | Yes | Must match root `.env` (`testnet` / `mainnet`) |
+In `server/.env`, set at least:
 
-Local defaults in `server/.env.example` are already set for `localhost:3000` (API) and `localhost:5173` (frontend).
+| Variable | What to put |
+|----------|-------------|
+| `DATABASE_URL` | Your Neon (or Postgres) connection string |
+| `BETTER_AUTH_SECRET` | Run `bunx @better-auth/cli secret` and paste the result |
+| `BETTER_AUTH_URL` | `http://localhost:3000` for local use |
+| `CORS_ORIGIN` | `http://localhost:5173` for local use |
+| `PAYMENT_APP_URL` | `http://localhost:5173` for local use |
+| `FIBER_NETWORK` | `testnet` (same as root `.env`) |
 
-Apply the database schema:
+Create the database tables:
 
 ```bash
 cd server
 bun install
 bun run db:push
+cd ..
 ```
 
 ---
 
-## 3. Start Fiber + API
+## 3. Start FiberFlow
 
 From the repo root:
 
@@ -131,12 +110,7 @@ From the repo root:
 ./start.sh
 ```
 
-This:
-
-1. Copies `config/testnet.yml` or `config/mainnet.yml` → `data/config.yml`
-2. Starts **fiber** (`nervos/fiber`) and **gateway** (FiberFlow API sharing Fiber’s network namespace)
-
-Check:
+Check that it is up:
 
 ```bash
 curl http://localhost:3000/health
@@ -145,51 +119,88 @@ curl http://localhost:3000/health
 docker compose exec fiber fnn-cli info
 ```
 
-| Port | Purpose | Public? |
-|------|---------|---------|
-| **8228** | Fiber P2P | Yes (peers) |
-| **8227** | Fiber JSON-RPC | **No** — localhost inside the container only |
-| **3000** | FiberFlow HTTP API | Yes (put TLS in front in production) |
+You should see node info including a `pubkey` and your network (`testnet`).
 
-To make your node easier for others to reach, edit `announced_addrs` in `config/testnet.yml` or `config/mainnet.yml` with your public IP, then restart.
+| Port | What it is |
+|------|------------|
+| **3000** | FiberFlow API (open this in a browser via the dashboard later) |
+| **8228** | Fiber network connection |
+| **8227** | Internal only — do not expose |
 
 ---
 
-## 4. Payment channels
+## 4. Fund the node and open a channel
 
-Fiber payments travel over **payment channels**, not one-off on-chain transfers for every invoice. Your node must:
+Invoices alone are not enough. Your node must be funded and connected to the Fiber network with an open channel. Until then, customers cannot complete payments.
 
-1. Be online and synced
-2. Have **CKB** (and any assets you accept) on the node wallet
-3. Have at least one **open, ready channel** with liquidity toward peers that can route payments
+### 4.1 Send testnet CKB to your node
 
-FiberFlow’s API can create invoices even if channels are missing, but **customers will not be able to complete real payments** until your node is properly connected and channeled.
+1. Copy the address from `ckb-cli util key-info` (or from `fnn-cli info`).  
+2. Get free testnet CKB from [faucet.nervos.org](https://faucet.nervos.org). Aim for about **10,000 CKB**.  
+3. Wait until the balance shows up before continuing.
 
-### How to open channels
+### 4.2 Connect to a public Fiber node
 
-Channel setup is part of **Fiber node operations**, not the FiberFlow dashboard. Follow the official guides for your network version:
+Public nodes change over time. Use one of these testnet peers (or check [fiber.world Network Resources](https://www.fiber.world/docs/quick-start/network-resources) if a command fails):
 
-- [Connect public testnet nodes](https://www.fiber.world/docs/quick-start/connect-nodes)
-- Fiber’s [testnet nodes manual](https://github.com/nervosnetwork/fiber/blob/develop/docs/testnet-nodes.md)
-
-Typical flow (details and amounts change over time — use the official docs for current pubkeys and minimums):
-
-1. Connect to a public peer (`fnn-cli` / `connect_peer`).
-2. Open a channel with sufficient funding (`open_channel`).
-3. Wait until channel state is ready (`list_channels`).
-
-Useful commands with this repo’s Docker setup:
+| Name | Pubkey |
+|------|--------|
+| bottle | `02b6d4e3ab86a2ca2fad6fae0ecb2e1e559e0b911939872a90abdda6d20302be71` |
+| bracer | `0291a6576bd5a94bd74b27080a48340875338fff9f6d6361fe6b8db8d0d1912fcc` |
 
 ```bash
-docker compose exec fiber fnn-cli info
+export PEER_PUBKEY=02b6d4e3ab86a2ca2fad6fae0ecb2e1e559e0b911939872a90abdda6d20302be71
+
+docker compose exec fiber fnn-cli peer connect_peer --pubkey "$PEER_PUBKEY"
+docker compose exec fiber fnn-cli peer list_peers
+```
+
+You should see the peer listed. If connect fails, try the other pubkey, or add an address:
+
+```bash
+docker compose exec fiber fnn-cli peer connect_peer \
+  --pubkey "$PEER_PUBKEY" \
+  --address "/dns4/bottle.fiber.channel/tcp/443/wss/p2p/QmXen3eUHhywmutEzydCsW4hXBoeVmdET2FJvMX69XJ1Eo"
+```
+
+If `fnn-cli` errors with `503`, run:
+
+```bash
+export NO_PROXY=127.0.0.1,localhost
+```
+
+### 4.3 Open a channel
+
+Public nodes usually accept channels of **at least 499 CKB**. This opens **500 CKB** (amount is in shannons: `1 CKB = 100000000`):
+
+```bash
+docker compose exec fiber fnn-cli channel open_channel \
+  --pubkey "$PEER_PUBKEY" \
+  --funding-amount 50000000000 \
+  --public true
+```
+
+Wait a few minutes, then check:
+
+```bash
 docker compose exec fiber fnn-cli channel list_channels
 ```
 
-Public node addresses and funding minimums are maintained by the Fiber project — **do not rely on outdated copy-pasted pubkeys from third-party blogs**. Always check the current Fiber documentation.
+Look for state **`ChannelReady`**. After that, wait a few more minutes so the network can learn your channel. Paying too early can fail even when the channel looks ready.
+
+### 4.4 What “ready to accept payments” means
+
+| Check | Good sign |
+|-------|-----------|
+| Peer connected | `peer list_peers` shows your peer |
+| Channel ready | `list_channels` shows `ChannelReady` |
+| Can receive | Prefer a channel with some **remote** balance, then confirm with a small real test payment |
+
+You do not need a special RUSD channel for normal FiberFlow checkout.
 
 ---
 
-## 5. Run the dashboard and checkout UI
+## 5. Open the dashboard
 
 ```bash
 cd frontend
@@ -199,65 +210,70 @@ bun install
 bun run dev
 ```
 
-Open `http://localhost:5173`:
+Open [http://localhost:5173](http://localhost:5173):
 
-1. **Sign up** with email/password  
-2. **Create a store** (name + slug)  
-3. **Settings** → create an **API key** (`ffg_...`, shown once)  
-4. **Webhooks** → add your HTTPS endpoint (HTTP allowed only for `localhost`)  
-5. Create a test invoice (dashboard or `POST /v1/invoices`) and open `payment_url`
+1. Sign up with email and password  
+2. Create a store (name + slug)  
+3. **Settings** → create an API key (`ffg_...`) — copy it once  
+4. **Webhooks** → add your store’s webhook URL  
+5. Create a small test invoice and open the payment link  
 
-Production hosting of the frontend is covered in [DEPLOY.md](DEPLOY.md).
-
----
-
-## 6. Connect your e-commerce site
-
-Integration model:
-
-1. Your backend calls `POST /v1/invoices` with your API key  
-2. You redirect the customer to `payment_url`  
-3. Customer pays with a Fiber wallet  
-4. Your server receives `invoice.paid` and fulfills the order  
-
-Full API, webhook verification, and store examples: **[MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md)**.
-
-There is **no** built-in Shopify or WooCommerce plugin. Any platform that can call an HTTP API and receive a webhook can integrate.
+**Production (VPS):** put Fiber + API + dashboard on a server, open Fiber port 8228, set `announced_addrs`, and deploy the frontend — full walkthrough: **[DEPLOY.md](DEPLOY.md)**.
 
 ---
 
-## 7. Checklist before going live
+## 6. Connect your store
 
-| Check | Why |
-|-------|-----|
-| `GET /health` returns OK | API is up |
-| `fnn-cli info` works | Fiber node is up |
-| Channels listed and ready | Payments can route |
-| Dashboard signup/login works | Auth + DB OK |
-| Create invoice returns `payment_url` | `PAYMENT_APP_URL` correct |
-| Checkout page loads without login | Public invoice API + CORS |
-| Test payment on testnet completes | End-to-end Fiber path works |
-| Webhook delivers `invoice.paid` | Fulfillment path works |
-| `./data` backed up | Key + channel state safety |
+Your store only needs three things:
 
----
+1. **Create invoice** — your backend calls FiberFlow with the API key  
+2. **Redirect** — send the customer to `payment_url`  
+3. **Fulfill** — when you receive `invoice.paid` on your webhook, mark the order paid  
 
-## Troubleshooting
+```text
+Customer checks out on your site
+        → your server creates an invoice
+        → customer pays on FiberFlow checkout
+        → FiberFlow tells your webhook “paid”
+        → you ship / unlock the order
+```
 
-| Symptom | Likely cause |
-|---------|----------------|
-| `./start.sh` exits: missing key | Create `data/ckb/key` as described above |
-| `./start.sh` exits: password | Set a real `FIBER_SECRET_KEY_PASSWORD` in `.env` |
-| API won’t start | Missing `DATABASE_URL` or Postgres unreachable |
-| `502` creating invoices | Fiber RPC down, or CKB/USD price fetch (CoinGecko) failed |
-| Invoice created but payment never confirms | No ready channels / node not reachable / wrong network |
-| CORS errors in browser | Add the frontend origin to `CORS_ORIGIN` |
-| `payment_url` points at wrong host | Set `PAYMENT_APP_URL` (API) and `VITE_PAYMENT_APP_URL` (frontend build) |
+Step-by-step API examples, webhook signature checks, and a sample server: **[MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md)** and **[examples/node-webhook/](../examples/node-webhook/)**.
+
+There is no Shopify/WooCommerce plugin yet. Any site that can call an HTTPS API and receive a webhook can integrate.
 
 ---
 
-## Next steps
+## You’re ready when…
 
-- Production domains and reverse proxy: [DEPLOY.md](DEPLOY.md)  
+- [ ] `http://localhost:3000/health` returns OK  
+- [ ] `fnn-cli info` works  
+- [ ] A peer is connected and a channel is `ChannelReady`  
+- [ ] You can sign in to the dashboard and create a store  
+- [ ] A test invoice payment completes  
+- [ ] Your webhook receives `invoice.paid`  
+- [ ] `./data` is backed up  
+
+---
+
+## If something goes wrong
+
+| Problem | Fix |
+|---------|-----|
+| `./start.sh` says missing key | Create `data/ckb/key` (step 1) |
+| `./start.sh` says password | Set `FIBER_SECRET_KEY_PASSWORD` in `.env` |
+| API won’t start | Check `DATABASE_URL` and that Postgres is reachable |
+| Can’t create invoices (`502`) | Wait for Fiber to finish starting; check internet (price feed) |
+| Invoice never becomes paid | Channel not ready, or wait a few minutes after opening; confirm testnet vs mainnet match |
+| `open_channel` fails | Fund at least ~500 CKB; connect the peer first |
+| `connect_peer` fails | Try the other public pubkey, or refresh peers from [Network Resources](https://www.fiber.world/docs/quick-start/network-resources) |
+| Browser CORS errors | Put your dashboard URL in `CORS_ORIGIN` |
+| Wrong payment link host | Set `PAYMENT_APP_URL` (and `VITE_PAYMENT_APP_URL` for production builds) |
+
+---
+
+## More detail (optional)
+
+- Deploy on a VPS (Docker, public Fiber address, frontend, HTTPS): [DEPLOY.md](DEPLOY.md)  
 - Store API + webhooks: [MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md)  
-- Example webhook server: [../examples/node-webhook/](../examples/node-webhook/)
+

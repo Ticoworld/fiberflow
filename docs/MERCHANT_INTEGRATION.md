@@ -1,10 +1,15 @@
-# Merchant / e-commerce integration
+# Connect your store
 
-FiberFlow lets your store accept Fiber payments. Your backend creates invoices via the API, redirects customers to the hosted checkout page, and fulfills orders when `invoice.paid` webhooks arrive.
+Use FiberFlow like a checkout provider: create a payment, send the customer to pay, fulfill when you get a paid webhook.
 
-This is a **generic REST + redirect + webhook** integration (similar in shape to Stripe Checkout). There is no official Shopify or WooCommerce plugin — any stack that can call HTTPS APIs and receive webhooks works.
+**You need from the FiberFlow dashboard**
 
-If you are running the Fiber node yourself, complete [SELF_HOSTING.md](SELF_HOSTING.md) first (node, wallet key, channels). This guide assumes FiberFlow is already running.
+1. An **API key** (`ffg_...`) — Settings  
+2. A **webhook URL** on your store + the **signing secret** (`whsec_...`) — Webhooks  
+
+There is no Shopify or WooCommerce plugin yet. Any site that can call an HTTPS API and receive a webhook works. If a developer is wiring this up for you, give them this page plus your API key and webhook secret.
+
+If FiberFlow is not running yet, start with [SELF_HOSTING.md](SELF_HOSTING.md).
 
 ---
 

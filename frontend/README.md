@@ -1,6 +1,6 @@
 # FiberFlow frontend
 
-TanStack Start app for the merchant dashboard and hosted checkout page.
+Merchant dashboard + customer checkout (same app).
 
 ## Local development
 
@@ -10,34 +10,42 @@ bun install
 bun run dev                  # http://localhost:5173
 ```
 
-Requires the API server running — see [`../server/README.md`](../server/README.md).
+Requires the API running — see [../docs/SELF_HOSTING.md](../docs/SELF_HOSTING.md).
 
-## Production build
+## Production (VPS)
+
+`VITE_API_URL` and `VITE_PAYMENT_APP_URL` are baked in at **build** time.
+
+### Docker
+
+```bash
+docker build -t fiberflow-web \
+  --build-arg VITE_API_URL=https://api.example.com \
+  --build-arg VITE_PAYMENT_APP_URL=https://checkout.example.com \
+  .
+
+docker run -d --name fiberflow-web --restart unless-stopped \
+  -p 127.0.0.1:4173:3000 fiberflow-web
+```
+
+### Bun on the server
 
 ```bash
 cp .env.example .env.production
-# VITE_API_URL=https://api.example.com
-# VITE_PAYMENT_APP_URL=https://checkout.example.com
+# set VITE_API_URL and VITE_PAYMENT_APP_URL
 
 bun install
 bun run build
-bun run preview              # optional local preview
+PORT=4173 HOST=0.0.0.0 bun run start
 ```
 
-Deploy the same build to both:
-
-- `app.example.com` — dashboard (`/dashboard`, auth routes)
-- `checkout.example.com` — payment page (`/pay/:paymentHash`)
-
-See [`../docs/DEPLOY.md`](../docs/DEPLOY.md) for the full production setup.
+Put Caddy/nginx in front of port 4173 for `app.` and `checkout.` — full steps: [../docs/DEPLOY.md](../docs/DEPLOY.md).
 
 ## Scripts
 
 | Command | Description |
 |---------|-------------|
 | `bun run dev` | Dev server on port 5173 |
-| `bun run build` | Production build |
-| `bun run preview` | Preview production build |
+| `bun run build` | Production build (Nitro → `.output/`) |
+| `bun run start` | Run production server (`node .output/server/index.mjs`) |
 | `bun run lint` | ESLint |
-
-Self-hosting and merchant setup: [`../docs/SELF_HOSTING.md`](../docs/SELF_HOSTING.md), [`../docs/MERCHANT_INTEGRATION.md`](../docs/MERCHANT_INTEGRATION.md).

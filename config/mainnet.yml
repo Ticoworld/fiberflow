@@ -12,8 +12,8 @@ fiber:
     - "/ip4/54.255.71.126/tcp/8228/p2p/QmcMLnWraRyxd7PFRgvn1QeYRQS2DGsP6fPFCQjtfMs5b2"
   announce_listening_addr: true
   announced_addrs:
-    # If you want to announce your fiber node public address to the network, you need to add the address here.
-    # Please change the ip to your public ip accordingly, and make sure the port is open and reachable from the internet.
+    # On a VPS: uncomment and set your public IPv4 so other Fiber nodes can dial you.
+    # Also open TCP 8228 in your cloud firewall. See docs/DEPLOY.md.
     # - "/ip4/YOUR-FIBER-NODE-PUBLIC-IP/tcp/8228"
   chain: mainnet
 
