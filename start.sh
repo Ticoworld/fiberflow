@@ -37,6 +37,6 @@ cp "$CONFIG_SRC" data/config.yml
 
 docker compose up -d --build
 echo "Node started. Logs: docker compose logs -f"
-echo "API:    http://localhost:${GATEWAY_PORT:-3000}/api/todos"
-echo "RPC:    http://localhost:${GATEWAY_PORT:-3000}/rpc/node-info"
+echo "Health: http://localhost:${GATEWAY_PORT:-3000}/health"
+echo "API:    http://localhost:${GATEWAY_PORT:-3000}/v1/invoices"
 echo "CLI:    docker compose exec fiber fnn-cli info"

@@ -206,6 +206,8 @@ Authorization: Bearer ffg_<your_api_key>
 BETTER_AUTH_URL=https://api.example.com
 CORS_ORIGIN=https://app.example.com,https://checkout.example.com
 PAYMENT_APP_URL=https://checkout.example.com
+AUTH_COOKIE_DOMAIN=example.com
+NODE_ENV=production
 ```
 
 **Dashboard (`app.example.com`)**
@@ -235,3 +237,7 @@ FIBERFLOW_WEBHOOK_SECRET=whsec_... bun run server.js
 ```
 
 Use [ngrok](https://ngrok.com) or similar to expose your local webhook receiver when testing against a hosted FiberFlow API.
+
+For automated checks, see [`docs/E2E_SMOKE_TEST.md`](../../docs/E2E_SMOKE_TEST.md).
+
+For production deployment, see [`docs/DEPLOY.md`](../../docs/DEPLOY.md).

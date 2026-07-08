@@ -35,6 +35,8 @@ FiberFlow is a payment gateway on Fiber. Merchants integrate via the API, redire
 | `api.example.com` | Merchant API |
 | `checkout.example.com` | Customer payment page |
 
+**Deployment guide:** [`docs/DEPLOY.md`](docs/DEPLOY.md)
+
 ## FiberFlow API
 
 The API container shares the Fiber container's network, so it can reach Fiber RPC on `127.0.0.1:8227` without exposing RPC to the host.

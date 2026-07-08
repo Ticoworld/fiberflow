@@ -6,9 +6,12 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-const config = defineConfig({
+export default defineConfig(({ mode }) => ({
   resolve: { tsconfigPaths: true },
-  plugins: [devtools(), tailwindcss(), tanstackStart(), viteReact()],
-})
-
-export default config
+  plugins: [
+    ...(mode === 'development' ? [devtools()] : []),
+    tailwindcss(),
+    tanstackStart(),
+    viteReact(),
+  ],
+}))
