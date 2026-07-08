@@ -15,13 +15,13 @@ If FiberFlow is not running yet, start with [SELF_HOSTING.md](SELF_HOSTING.md).
 
 ## Domains
 
-| Subdomain | Purpose |
-|-----------|---------|
-| `app.example.com` | Merchant dashboard |
+| Hostname | Purpose |
+|----------|---------|
+| `example.com` | Landing page + merchant dashboard (no subdomain) |
 | `api.example.com` | Merchant API + webhook delivery |
 | `checkout.example.com` | Customer payment page |
 
-Local development uses `http://localhost:5173` (app + checkout) and `http://localhost:3000` (api).
+Local development uses `http://localhost:5173` (landing, dashboard, and checkout) and `http://localhost:3000` (api).
 
 ---
 
@@ -46,7 +46,7 @@ On the checkout page, the customer sees the amount, a **QR code**, and a **payme
 
 ### 1. Create an API key
 
-1. Sign in to the FiberFlow dashboard (`app…` or `http://localhost:5173`).
+1. Open FiberFlow (`https://example.com` or `http://localhost:5173`), use **Get started** / **Sign in**, then open your store dashboard.
 2. Open **Settings**.
 3. Create an API key and copy the token (`ffg_...`). It is shown once.
 
@@ -262,7 +262,7 @@ Idempotency tip: treat `order_id` as your correlation key. `order_id` must be un
 
 ```bash
 BETTER_AUTH_URL=https://api.example.com
-CORS_ORIGIN=https://app.example.com,https://checkout.example.com
+CORS_ORIGIN=https://example.com,https://checkout.example.com
 PAYMENT_APP_URL=https://checkout.example.com
 ```
 

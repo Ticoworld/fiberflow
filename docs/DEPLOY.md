@@ -7,11 +7,11 @@ This guide puts FiberFlow on a server so your store can accept Fiber payments in
 | Piece | What it is |
 |-------|------------|
 | `https://api.example.com` | FiberFlow HTTP API (auth, invoices, webhooks) |
-| `https://app.example.com` | Merchant dashboard |
-| `https://checkout.example.com` | Customer payment page |
+| `https://example.com` | Landing page + merchant dashboard (Sign in / Get started) |
+| `https://checkout.example.com` | Customer payment page (`/pay/...`) |
 | VPS public IP, port **8228** | Fiber P2P (not a website — other Fiber nodes connect here) |
 
-The Fiber node and API run together in Docker on the VPS. The dashboard/checkout is a separate container (or process). Replace `example.com` with your domain everywhere below.
+The Fiber node and API run together in Docker on the VPS. The **frontend** (landing, dashboard, and checkout) is a separate container or process — one build serves all of those pages. Replace `example.com` with your domain everywhere below.
 
 ---
 
@@ -142,7 +142,7 @@ cp server/.env.example server/.env
 DATABASE_URL=postgresql://...
 BETTER_AUTH_SECRET=...         # bunx @better-auth/cli secret
 BETTER_AUTH_URL=https://api.example.com
-CORS_ORIGIN=https://app.example.com,https://checkout.example.com
+CORS_ORIGIN=https://example.com,https://checkout.example.com
 PAYMENT_APP_URL=https://checkout.example.com
 FIBER_NETWORK=testnet          # must match root .env
 PORT=3000
@@ -199,9 +199,17 @@ docker compose exec fiber fnn-cli channel list_channels
 
 ---
 
-## 5. Deploy the frontend (dashboard + checkout)
+## 5. Deploy the frontend (landing + dashboard + checkout)
 
-The dashboard and checkout are the **same app**. One build can serve both hostnames.
+One frontend build serves:
+
+| Path | Purpose |
+|------|---------|
+| `/` | Marketing landing (redirects to dashboard if already signed in) |
+| `/login`, `/signup`, `/dashboard/...` | Merchant app |
+| `/pay/:paymentHash` | Customer checkout |
+
+Point `example.com` and `checkout.example.com` at the same frontend. Merchants use the apex site; payment links use `checkout…`.
 
 `VITE_API_URL` and `VITE_PAYMENT_APP_URL` are baked in at **build** time. Rebuild if you change domains.
 
@@ -263,7 +271,7 @@ Create **A records** (or AAAA for IPv6) for:
 | Hostname | Points to |
 |----------|-----------|
 | `api.example.com` | VPS public IP |
-| `app.example.com` | VPS public IP |
+| `example.com` | VPS public IP |
 | `checkout.example.com` | VPS public IP |
 
 Wait until DNS resolves before requesting HTTPS certificates.
@@ -279,7 +287,7 @@ api.example.com {
     reverse_proxy 127.0.0.1:3000
 }
 
-app.example.com {
+example.com {
     reverse_proxy 127.0.0.1:4173
 }
 
@@ -294,6 +302,8 @@ sudo systemctl reload caddy
 
 With ports **80/443** open and DNS correct, Caddy can obtain certificates automatically.
 
+Optional: redirect `www.example.com` to `example.com` in Caddy if you use www.
+
 Nginx works the same way: proxy those three hostnames to `127.0.0.1:3000` (API) and `127.0.0.1:4173` (frontend), plus TLS (e.g. Certbot).
 
 ---
@@ -305,7 +315,7 @@ Nginx works the same way: proxy those three hostnames to `127.0.0.1:3000` (API) 
 | API health | `curl https://api.example.com/health` → `{"status":"ok"}` |
 | Fiber listening | `docker compose exec fiber fnn-cli info` works |
 | Public dial (if you announced) | External check that `YOUR_IP:8228` accepts TCP |
-| Dashboard | `https://app.example.com` → sign up / log in |
+| Landing + dashboard | `https://example.com` shows the landing page → Get started / Sign in |
 | Payment links | New invoice `payment_url` starts with `https://checkout.example.com/` |
 | Channel | `list_channels` shows `ChannelReady` |
 | Money path | Small test payment completes; webhook gets `invoice.paid` |
@@ -356,7 +366,7 @@ Rebuild with the same `VITE_*` URLs, then restart the container or `bun run star
 |---------|-----|
 | Peers cannot dial you | Set `announced_addrs` to the real public IP; open TCP **8228**; `./start.sh` again |
 | `announced_addrs` ignored | You edited only `data/config.yml` — edit `config/testnet.yml` or `config/mainnet.yml`, then `./start.sh` |
-| Login works then session lost | `BETTER_AUTH_URL=https://api.example.com`; `CORS_ORIGIN` includes app + checkout |
+| Login works then session lost | `BETTER_AUTH_URL=https://api.example.com`; `CORS_ORIGIN` includes `https://example.com` and `https://checkout.example.com` |
 | CORS on checkout | Add checkout origin to `CORS_ORIGIN`, restart API container |
 | Wrong payment link host | Set API `PAYMENT_APP_URL` **and** rebuild frontend with `VITE_PAYMENT_APP_URL` |
 | Frontend still calls localhost | Rebuild — `VITE_*` values are fixed at build time |

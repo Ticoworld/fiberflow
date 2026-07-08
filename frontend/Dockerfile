@@ -1,4 +1,4 @@
-# Build and run the FiberFlow dashboard + checkout UI.
+# Build and run the FiberFlow landing page, dashboard, and checkout UI.
 # Usage (from repo root):
 #   docker build -t fiberflow-web ./frontend \
 #     --build-arg VITE_API_URL=https://api.example.com \

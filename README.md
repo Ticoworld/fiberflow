@@ -2,7 +2,7 @@
 
 Accept Fiber Network payments on your online store.
 
-FiberFlow gives you a dashboard, checkout page, API, and webhooks — similar to Stripe Checkout, but for Fiber on Nervos CKB. You run it yourself (with your own wallet key). Customers pay with any Fiber-compatible wallet.
+FiberFlow gives you a landing page, merchant dashboard, checkout page, API, and webhooks — similar to Stripe Checkout, but for Fiber on Nervos CKB. You run it yourself (with your own wallet key). Customers pay with any Fiber-compatible wallet.
 
 ---
 
@@ -37,14 +37,14 @@ Customer checks out on your store
 |-------|------|
 | Fiber node (Docker) | Your wallet + payment channels |
 | API (`server/`) | Invoices, auth, webhooks |
-| Frontend (`frontend/`) | Merchant dashboard + customer checkout |
+| Frontend (`frontend/`) | Landing page, merchant dashboard, and customer checkout |
 | PostgreSQL | You provide this (e.g. Neon) |
 
 ---
 
 ## Quick start
 
-You need [Docker](https://docs.docker.com/get-docker/), a Postgres database ([Neon](https://neon.tech) works), and [Bun](https://bun.sh) for the dashboard.
+You need [Docker](https://docs.docker.com/get-docker/), a Postgres database ([Neon](https://neon.tech) works), and [Bun](https://bun.sh) for the frontend.
 
 ```bash
 git clone https://github.com/chukwuma619/fiberflow.git

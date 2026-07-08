@@ -6,7 +6,7 @@ Follow these steps in order. When you finish, you can accept Fiber payments from
 
 1. FiberFlow running on your computer or server  
 2. A payment channel so customers can actually pay you  
-3. A dashboard login, API key, and webhook for your store  
+3. The landing page, a dashboard login, API key, and webhook for your store  
 
 On your laptop you do **not** need a public IP — your node connects out to the Fiber network. On a VPS, you should announce your public address so other nodes can reach you — see [DEPLOY.md](DEPLOY.md).
 
@@ -87,7 +87,7 @@ In `server/.env`, set at least:
 | `DATABASE_URL` | Your Neon (or Postgres) connection string |
 | `BETTER_AUTH_SECRET` | Run `bunx @better-auth/cli secret` and paste the result |
 | `BETTER_AUTH_URL` | `http://localhost:3000` for local use |
-| `CORS_ORIGIN` | `http://localhost:5173` for local use |
+| `CORS_ORIGIN` | `http://localhost:5173` for local use (production: apex site + checkout, e.g. `https://example.com,https://checkout.example.com`) |
 | `PAYMENT_APP_URL` | `http://localhost:5173` for local use |
 | `FIBER_NETWORK` | `testnet` (same as root `.env`) |
 
@@ -200,7 +200,7 @@ You do not need a special RUSD channel for normal FiberFlow checkout.
 
 ---
 
-## 5. Open the dashboard
+## 5. Open the app (landing + dashboard)
 
 ```bash
 cd frontend
@@ -212,13 +212,15 @@ bun run dev
 
 Open [http://localhost:5173](http://localhost:5173):
 
-1. Sign up with email and password  
-2. Create a store (name + slug)  
+1. You should see the **FiberFlow landing page** (Sign in / Get started)  
+2. Create an account, then create a store (name + slug)  
 3. **Settings** → create an API key (`ffg_...`) — copy it once  
 4. **Webhooks** → add your store’s webhook URL  
 5. Create a small test invoice and open the payment link  
 
-**Production (VPS):** put Fiber + API + dashboard on a server, open Fiber port 8228, set `announced_addrs`, and deploy the frontend — full walkthrough: **[DEPLOY.md](DEPLOY.md)**.
+If you are already signed in, `/` sends you straight to the dashboard.
+
+**Production (VPS):** put Fiber + API + the frontend on a server, open Fiber port 8228, set `announced_addrs` — full walkthrough: **[DEPLOY.md](DEPLOY.md)**.
 
 ---
 
@@ -267,7 +269,7 @@ There is no Shopify/WooCommerce plugin yet. Any site that can call an HTTPS API 
 | Invoice never becomes paid | Channel not ready, or wait a few minutes after opening; confirm testnet vs mainnet match |
 | `open_channel` fails | Fund at least ~500 CKB; connect the peer first |
 | `connect_peer` fails | Try the other public pubkey, or refresh peers from [Network Resources](https://www.fiber.world/docs/quick-start/network-resources) |
-| Browser CORS errors | Put your dashboard URL in `CORS_ORIGIN` |
+| Browser CORS errors | Put your site origin in `CORS_ORIGIN` (local: `http://localhost:5173`; production: apex + checkout) |
 | Wrong payment link host | Set `PAYMENT_APP_URL` (and `VITE_PAYMENT_APP_URL` for production builds) |
 
 ---

@@ -1,6 +1,14 @@
 # FiberFlow frontend
 
-Merchant dashboard + customer checkout (same app).
+One app for:
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Marketing landing (Sign in / Get started). Signed-in users go to `/dashboard` |
+| `/login`, `/signup`, `/onboarding`, `/dashboard/...` | Merchant dashboard |
+| `/pay/:paymentHash` | Customer checkout |
+
+In production the **apex domain** (`https://example.com`) serves landing + dashboard. Only **api** and **checkout** use subdomains.
 
 ## Local development
 
@@ -10,7 +18,7 @@ bun install
 bun run dev                  # http://localhost:5173
 ```
 
-Requires the API running — see [../docs/SELF_HOSTING.md](../docs/SELF_HOSTING.md).
+Open the root URL to see the landing page. Requires the API running — see [../docs/SELF_HOSTING.md](../docs/SELF_HOSTING.md).
 
 ## Production (VPS)
 
@@ -39,7 +47,7 @@ bun run build
 PORT=4173 HOST=0.0.0.0 bun run start
 ```
 
-Put Caddy/nginx in front of port 4173 for `app.` and `checkout.` — full steps: [../docs/DEPLOY.md](../docs/DEPLOY.md).
+Put Caddy/nginx in front of port 4173 for `example.com` (landing + dashboard) and `checkout.example.com` (payment links) — full steps: [../docs/DEPLOY.md](../docs/DEPLOY.md).
 
 ## Scripts
 
