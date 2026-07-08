@@ -24,6 +24,9 @@ export type WebhookLog = {
       amount_in_usd: number
       status: string
       customer_email: string
+      metadata: Record<string, string>
+      success_url: string | null
+      cancel_url: string | null
     }
   }
   status: 'pending' | 'succeeded' | 'failed'

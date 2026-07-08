@@ -18,6 +18,9 @@ export type Invoice = {
   storeId: string | null
   orderId: string
   customerEmail: string
+  metadata: Record<string, string>
+  successUrl: string | null
+  cancelUrl: string | null
   createdAt: string
   updatedAt: string
 }

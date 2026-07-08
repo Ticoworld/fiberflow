@@ -3,6 +3,7 @@ import { HTTPException } from 'hono/http-exception'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 
 import { fromHttpException, MerchantApiException } from '../lib/merchant-errors'
+import { FiberRpcError } from '../fiber-rpc'
 
 function toStatusCode(status: number): ContentfulStatusCode {
   return status as ContentfulStatusCode
@@ -16,6 +17,19 @@ export const merchantErrorHandler: ErrorHandler = (error, c) => {
   if (error instanceof HTTPException) {
     const merchantError = fromHttpException(error)
     return c.json(merchantError.toJSON(), toStatusCode(merchantError.status))
+  }
+
+  if (error instanceof FiberRpcError) {
+    return c.json(
+      {
+        error: {
+          type: 'api_error',
+          code: 'fiber_rpc_error',
+          message: error.message,
+        },
+      },
+      502,
+    )
   }
 
   console.error(error)

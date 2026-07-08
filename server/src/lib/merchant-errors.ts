@@ -108,6 +108,22 @@ function messageToCode(message: string, status: number): string {
     return 'amount_too_small'
   }
 
+  if (normalized.includes('cannot be cancelled') || normalized.includes('cannot cancel')) {
+    return 'invoice_not_cancellable'
+  }
+
+  if (normalized.includes('metadata')) {
+    return 'invalid_metadata'
+  }
+
+  if (normalized.includes('successurl') || normalized.includes('success_url')) {
+    return 'invalid_success_url'
+  }
+
+  if (normalized.includes('cancelurl') || normalized.includes('cancel_url')) {
+    return 'invalid_cancel_url'
+  }
+
   if (status === 404) {
     return 'resource_missing'
   }

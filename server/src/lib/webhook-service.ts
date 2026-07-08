@@ -37,6 +37,9 @@ function buildWebhookPayload(
       amount_in_usd: invoice.amountInUSD,
       status: invoice.status,
       customer_email: invoice.customerEmail,
+      metadata: invoice.metadata ?? {},
+      success_url: invoice.successUrl,
+      cancel_url: invoice.cancelUrl,
     },
   }
 }

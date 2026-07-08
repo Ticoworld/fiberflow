@@ -123,7 +123,8 @@ function WebhooksPage() {
               <DialogHeader>
                 <DialogTitle>Add webhook</DialogTitle>
                 <DialogDescription>
-                  FiberFlow will POST signed events like <code>invoice.paid</code> to this URL.
+                  FiberFlow will POST signed events like <code>invoice.created</code> and{' '}
+                  <code>invoice.paid</code> to this URL.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={form.handleSubmit(onCreateSubmit)}>

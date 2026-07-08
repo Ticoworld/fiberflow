@@ -1,8 +1,12 @@
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
 
+import { FiberRpcError } from '../../fiber-rpc'
+
 import {
+  cancelInvoiceForStore,
   createInvoice,
+  getInvoiceByOrderIdForStore,
   getInvoiceForStore,
   listInvoicesForStorePaginated,
 } from '../../lib/invoice-service'
@@ -14,6 +18,7 @@ import {
   releaseIdempotentRequest,
 } from '../../lib/idempotency'
 import {
+  apiError,
   fromHttpException,
   idempotencyConflict,
   invalidRequest,
@@ -50,6 +55,23 @@ invoiceRoutes.get('/', async (c) => {
   return c.json(serializeMerchantInvoiceList(result.invoices, result.hasMore))
 })
 
+invoiceRoutes.get('/by-order/:orderId', async (c) => {
+  const storeId = c.get('storeId')
+  const orderId = c.req.param('orderId')?.trim()
+
+  if (!orderId) {
+    invalidRequest('order_id is required.', 'order_id', 'missing_order_id')
+  }
+
+  const record = await getInvoiceByOrderIdForStore(storeId, orderId)
+
+  if (!record) {
+    notFound('Invoice not found.', 'invoice_not_found')
+  }
+
+  return c.json({ invoice: serializeMerchantInvoice(record) })
+})
+
 invoiceRoutes.get('/:id', async (c) => {
   const storeId = c.get('storeId')
   const invoiceId = Number(c.req.param('id'))
@@ -65,6 +87,23 @@ invoiceRoutes.get('/:id', async (c) => {
   }
 
   return c.json({ invoice: serializeMerchantInvoice(record) })
+})
+
+invoiceRoutes.post('/:id/cancel', async (c) => {
+  const storeId = c.get('storeId')
+  const invoiceId = Number(c.req.param('id'))
+
+  if (!Number.isInteger(invoiceId) || invoiceId <= 0) {
+    invalidRequest('Invalid invoice id.', 'id', 'invalid_invoice_id')
+  }
+
+  const cancelled = await cancelMerchantInvoice(storeId, invoiceId)
+
+  if (!cancelled) {
+    notFound('Invoice not found.', 'invoice_not_found')
+  }
+
+  return c.json({ invoice: cancelled })
 })
 
 invoiceRoutes.post('/', async (c) => {
@@ -136,12 +175,42 @@ async function createMerchantInvoice(
       throw fromHttpException(error)
     }
 
+    if (error instanceof FiberRpcError) {
+      apiError(error.message, 'fiber_rpc_error')
+    }
+
     if (isUniqueViolation(error)) {
       invalidRequest(
         `An invoice with order_id '${input.orderId}' already exists.`,
         'order_id',
         'order_id_already_exists',
       )
+    }
+
+    throw error
+  }
+}
+
+async function cancelMerchantInvoice(storeId: string, invoiceId: number) {
+  try {
+    const cancelled = await cancelInvoiceForStore(storeId, invoiceId)
+
+    if (!cancelled) {
+      return null
+    }
+
+    return serializeMerchantInvoice(cancelled)
+  } catch (error) {
+    if (error instanceof MerchantApiException) {
+      throw error
+    }
+
+    if (error instanceof HTTPException) {
+      throw fromHttpException(error)
+    }
+
+    if (error instanceof FiberRpcError) {
+      apiError(error.message, 'fiber_rpc_error')
     }
 
     throw error

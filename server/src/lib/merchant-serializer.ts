@@ -16,6 +16,9 @@ export type MerchantInvoice = {
   invoice_address: string | null
   customer_email: string
   description: string | null
+  metadata: Record<string, string>
+  success_url: string | null
+  cancel_url: string | null
   expiry_seconds: number
   created_at: string
   updated_at: string
@@ -88,6 +91,9 @@ export function serializeMerchantInvoice(invoice: Invoice): MerchantInvoice {
     invoice_address: invoice.invoiceAddress,
     customer_email: invoice.customerEmail,
     description: invoice.description,
+    metadata: invoice.metadata ?? {},
+    success_url: invoice.successUrl,
+    cancel_url: invoice.cancelUrl,
     expiry_seconds: invoice.expirySeconds,
     created_at: invoice.createdAt.toISOString(),
     updated_at: invoice.updatedAt.toISOString(),
@@ -110,6 +116,9 @@ type MerchantCreateInvoiceBody = {
   order_id?: unknown
   customer_email?: unknown
   description?: unknown
+  metadata?: unknown
+  success_url?: unknown
+  cancel_url?: unknown
 }
 
 export function parseMerchantCreateInvoiceInput(
@@ -118,13 +127,19 @@ export function parseMerchantCreateInvoiceInput(
   const amountInUSD = parsePositiveNumber(body.amount_in_usd, 'amount_in_usd')
   const orderId = parseRequiredString(body.order_id, 'order_id')
   const customerEmail = parseRequiredString(body.customer_email, 'customer_email')
-  const description = parseOptionalString(body.description)
+  const description = parseOptionalString(body.description, 'description')
+  const metadata = parseMetadata(body.metadata)
+  const successUrl = parseOptionalUrl(body.success_url, 'success_url')
+  const cancelUrl = parseOptionalUrl(body.cancel_url, 'cancel_url')
 
   return {
     amountInUSD,
     orderId,
     customerEmail,
     description,
+    metadata,
+    successUrl,
+    cancelUrl,
   }
 }
 
@@ -176,14 +191,100 @@ function parseRequiredString(value: unknown, param: string): string {
   return value.trim()
 }
 
-function parseOptionalString(value: unknown): string | undefined {
+function parseOptionalString(value: unknown, param: string): string | undefined {
   if (value === undefined || value === null || value === '') {
     return undefined
   }
 
   if (typeof value !== 'string') {
-    invalidRequest('description must be a string.', 'description', 'invalid_description')
+    invalidRequest(`${param} must be a string.`, param, `invalid_${param}`)
   }
 
   return value.trim() || undefined
+}
+
+const MAX_METADATA_KEYS = 50
+const MAX_METADATA_KEY_LENGTH = 40
+const MAX_METADATA_VALUE_LENGTH = 500
+
+function parseMetadata(value: unknown): Record<string, string> | undefined {
+  if (value === undefined || value === null) {
+    return undefined
+  }
+
+  if (typeof value !== 'object' || Array.isArray(value)) {
+    invalidRequest('metadata must be an object.', 'metadata', 'invalid_metadata')
+  }
+
+  const entries = Object.entries(value as Record<string, unknown>)
+
+  if (entries.length > MAX_METADATA_KEYS) {
+    invalidRequest(
+      `metadata must have ${MAX_METADATA_KEYS} keys or fewer.`,
+      'metadata',
+      'invalid_metadata',
+    )
+  }
+
+  const metadata: Record<string, string> = {}
+
+  for (const [key, entryValue] of entries) {
+    if (!key.trim()) {
+      invalidRequest('metadata keys must be non-empty strings.', 'metadata', 'invalid_metadata')
+    }
+
+    if (key.length > MAX_METADATA_KEY_LENGTH) {
+      invalidRequest(
+        `metadata key '${key}' exceeds ${MAX_METADATA_KEY_LENGTH} characters.`,
+        'metadata',
+        'invalid_metadata',
+      )
+    }
+
+    if (typeof entryValue !== 'string') {
+      invalidRequest(`metadata value for '${key}' must be a string.`, 'metadata', 'invalid_metadata')
+    }
+
+    if (entryValue.length > MAX_METADATA_VALUE_LENGTH) {
+      invalidRequest(
+        `metadata value for '${key}' exceeds ${MAX_METADATA_VALUE_LENGTH} characters.`,
+        'metadata',
+        'invalid_metadata',
+      )
+    }
+
+    metadata[key] = entryValue
+  }
+
+  return metadata
+}
+
+function parseOptionalUrl(value: unknown, param: string): string | undefined {
+  if (value === undefined || value === null || value === '') {
+    return undefined
+  }
+
+  if (typeof value !== 'string') {
+    invalidRequest(`${param} must be a string.`, param, `invalid_${param}`)
+  }
+
+  const trimmed = value.trim()
+
+  if (!trimmed) {
+    return undefined
+  }
+
+  let parsed: URL
+
+  try {
+    parsed = new URL(trimmed)
+  } catch {
+    invalidRequest(`${param} must be a valid URL.`, param, `invalid_${param}`)
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    invalidRequest(`${param} must use http or https.`, param, `invalid_${param}`)
+  }
+
+  return trimmed
 }

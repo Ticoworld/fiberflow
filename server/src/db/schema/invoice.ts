@@ -1,11 +1,13 @@
 import {
   bigint,
   index,
+  jsonb,
   pgEnum,
   pgTable,
   serial,
   text,
   timestamp,
+  unique,
   uuid,
 } from 'drizzle-orm/pg-core'
 
@@ -39,8 +41,11 @@ export const invoice = pgTable(
     signature: text('signature'),
     status: invoiceStatusEnum('status').notNull().default('Open'),
     storeId: uuid('store_id').references(() => store.id, { onDelete: 'cascade' }),
-    orderId: text('order_id').unique().notNull(),
+    orderId: text('order_id').notNull(),
     customerEmail: text('customer_email').notNull(),
+    metadata: jsonb('metadata').notNull().$type<Record<string, string>>().default({}),
+    successUrl: text('success_url'),
+    cancelUrl: text('cancel_url'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -50,6 +55,7 @@ export const invoice = pgTable(
   (table) => [
     index('invoice_status_idx').on(table.status),
     index('invoice_store_id_idx').on(table.storeId),
+    unique('invoice_store_order_id_unique').on(table.storeId, table.orderId),
   ],
 )
 

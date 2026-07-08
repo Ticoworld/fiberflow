@@ -4,6 +4,7 @@ import { invoice } from './invoice'
 import { store } from './store'
 
 export const WEBHOOK_EVENT_TYPES = [
+  'invoice.created',
   'invoice.received',
   'invoice.paid',
   'invoice.expired',
@@ -23,6 +24,9 @@ export type WebhookEventPayload = {
     amount_in_usd: number
     status: string
     customer_email: string
+    metadata: Record<string, string>
+    success_url: string | null
+    cancel_url: string | null
   }
 }
 
