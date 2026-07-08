@@ -22,11 +22,12 @@ export type WebhookEventPayload = {
     order_id: string
     payment_hash: string | null
     amount_in_usd: number
-    status: string
+    status: 'open' | 'received' | 'paid' | 'expired' | 'cancelled'
     customer_email: string
     metadata: Record<string, string>
     success_url: string | null
     cancel_url: string | null
+    payment_url: string | null
   }
 }
 

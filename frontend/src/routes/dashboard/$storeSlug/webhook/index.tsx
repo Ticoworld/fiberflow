@@ -107,7 +107,7 @@ function WebhooksPage() {
     <>
       <DashboardHeader
         title="Webhooks"
-        description="Manage endpoints that receive signed invoice events."
+        description="Receive signed invoice.paid events to fulfill orders on your server."
       />
 
       <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
@@ -123,8 +123,8 @@ function WebhooksPage() {
               <DialogHeader>
                 <DialogTitle>Add webhook</DialogTitle>
                 <DialogDescription>
-                  FiberFlow will POST signed events like <code>invoice.created</code> and{' '}
-                  <code>invoice.paid</code> to this URL.
+                  FiberFlow POSTs signed events to this URL. Fulfill orders on{' '}
+                  <code>invoice.paid</code>.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={form.handleSubmit(onCreateSubmit)}>

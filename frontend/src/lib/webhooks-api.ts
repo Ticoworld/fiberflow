@@ -27,6 +27,7 @@ export type WebhookLog = {
       metadata: Record<string, string>
       success_url: string | null
       cancel_url: string | null
+      payment_url: string | null
     }
   }
   status: 'pending' | 'succeeded' | 'failed'

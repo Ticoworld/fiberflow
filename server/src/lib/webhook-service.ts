@@ -9,6 +9,7 @@ import {
   type WebhookEventPayload,
   type WebhookEventType,
 } from '../db/schema'
+import { serializeMerchantInvoice } from './merchant-serializer'
 import { formatWebhookSignatureHeader } from './webhook-crypto'
 
 const MAX_DELIVERY_ATTEMPTS = 5
@@ -26,20 +27,23 @@ function buildWebhookPayload(
   eventType: WebhookEventType,
   invoice: Invoice,
 ): WebhookEventPayload {
+  const serialized = serializeMerchantInvoice(invoice)
+
   return {
     id: crypto.randomUUID(),
     type: eventType,
     created_at: new Date().toISOString(),
     data: {
-      invoice_id: invoice.id,
-      order_id: invoice.orderId,
-      payment_hash: invoice.paymentHash,
-      amount_in_usd: invoice.amountInUSD,
-      status: invoice.status,
-      customer_email: invoice.customerEmail,
-      metadata: invoice.metadata ?? {},
-      success_url: invoice.successUrl,
-      cancel_url: invoice.cancelUrl,
+      invoice_id: serialized.id,
+      order_id: serialized.order_id,
+      payment_hash: serialized.payment_hash,
+      amount_in_usd: serialized.amount_in_usd,
+      status: serialized.status,
+      customer_email: serialized.customer_email,
+      metadata: serialized.metadata,
+      success_url: serialized.success_url,
+      cancel_url: serialized.cancel_url,
+      payment_url: serialized.payment_url,
     },
   }
 }

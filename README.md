@@ -19,24 +19,33 @@ mkdir -p data/ckb
 
 That's it. P2P listens on port **8228**. The FiberFlow API listens on port **3000**.
 
+## Merchant payments
+
+FiberFlow is a payment gateway on Fiber. Merchants integrate via the API, redirect customers to the checkout page, and fulfill orders on `invoice.paid` webhooks.
+
+**Integration guide:** [`docs/MERCHANT_INTEGRATION.md`](docs/MERCHANT_INTEGRATION.md)
+
+**Example webhook receiver:** [`examples/node-webhook/`](examples/node-webhook/)
+
+### Production domains
+
+| Subdomain | Purpose |
+|-----------|---------|
+| `app.example.com` | Dashboard |
+| `api.example.com` | Merchant API |
+| `checkout.example.com` | Customer payment page |
+
 ## FiberFlow API
 
 The API container shares the Fiber container's network, so it can reach Fiber RPC on `127.0.0.1:8227` without exposing RPC to the host.
 
 ```bash
 curl http://localhost:3000/health
-curl http://localhost:3000/api/todos
-curl http://localhost:3000/rpc/node-info
-curl http://localhost:3000/rpc/list-channels
-curl http://localhost:3000/rpc/list-peers
+curl http://localhost:3000/v1/invoices \
+  -H "Authorization: Bearer ffg_YOUR_API_KEY"
 ```
 
-Optional query params for `/rpc/list-channels`:
-
-- `include_closed=true` — include closed channels
-- `peer_id=<pubkey>` — filter by peer
-
-Fiber RPC is not exposed publicly — only the API port is. Add authentication before deploying to production.
+Fiber RPC is not exposed publicly — only the API port is.
 
 ### Local development (without Docker)
 

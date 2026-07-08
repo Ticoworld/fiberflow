@@ -1,4 +1,4 @@
-FiberFlow API server that proxies Fiber RPC, serves Better Auth, and connects to Neon via Drizzle.
+FiberFlow API server — Fiber payment gateway backend.
 
 Built with [Bun](https://bun.sh), [Hono](https://hono.dev), [Drizzle ORM](https://orm.drizzle.team), and [Better Auth](https://better-auth.com).
 
@@ -19,21 +19,30 @@ Started automatically by `./start.sh` from the repo root. Uses `server/.env` for
 
 ## Routes
 
-### `/api/*` — frontend ↔ backend
+### `/v1/*` — merchant API (API key auth)
 
 | Route | Description |
 |-------|-------------|
-| `GET/POST /api/auth/*` | Better Auth endpoints |
-| `GET /api/todos` | List todos |
-| `POST /api/todos` | Create todo |
+| `POST /v1/invoices` | Create invoice |
+| `GET /v1/invoices/:id` | Get invoice |
+| `GET /v1/invoices/by-order/:orderId` | Get invoice by order id |
 
-### `/rpc/*` — server ↔ Fiber node
+See [`docs/MERCHANT_INTEGRATION.md`](../docs/MERCHANT_INTEGRATION.md).
+
+### `/public/*` — unauthenticated (payment page)
 
 | Route | Description |
 |-------|-------------|
-| `GET /rpc/node-info` | Fiber node info |
-| `GET /rpc/list-channels` | Fiber channels |
-| `GET /rpc/list-peers` | Fiber peers |
+| `GET /public/invoices/:paymentHash` | Public invoice status for checkout |
+
+### `/api/*` — dashboard (session auth)
+
+| Route | Description |
+|-------|-------------|
+| `GET/POST /api/auth/*` | Better Auth |
+| `/api/stores/:storeId/invoices` | Dashboard invoices |
+| `/api/stores/:storeId/webhooks` | Webhook management |
+| `/api/stores/:storeId/api-keys` | API key management |
 
 ### Other
 

@@ -53,6 +53,10 @@ import {
 } from '#/components/ui/table.tsx'
 import { fetchStoreBySlug } from '#/lib/stores-api.ts'
 import {
+  MERCHANT_INTEGRATION_DOC_PATH,
+  WEBHOOK_VERIFY_NODE_SNIPPET,
+} from '#/lib/integration.ts'
+import {
   deleteStoreWebhook,
   fetchStoreWebhook,
   fetchWebhookLogs,
@@ -123,6 +127,15 @@ function WebhookDetailPage() {
       toast.success('Webhook secret copied')
     } catch {
       toast.error('Unable to copy webhook secret')
+    }
+  }
+
+  async function copyVerificationSnippet() {
+    try {
+      await navigator.clipboard.writeText(WEBHOOK_VERIFY_NODE_SNIPPET)
+      toast.success('Verification snippet copied')
+    } catch {
+      toast.error('Unable to copy verification snippet')
     }
   }
 
@@ -227,6 +240,7 @@ function WebhookDetailPage() {
                   </InputGroup>
                   <FieldDescription>
                     Verify <code className="text-xs">X-FiberFlow-Signature</code> with this secret.
+                    Fulfill orders on <code className="text-xs">invoice.paid</code> only.
                   </FieldDescription>
                 </Field>
 
@@ -266,6 +280,27 @@ function WebhookDetailPage() {
                 </div>
               </FieldGroup>
             </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Verify webhooks</CardTitle>
+            <CardDescription>
+              Read the raw body, verify the signature, then handle{' '}
+              <code className="text-xs">invoice.paid</code>. See{' '}
+              <code className="text-xs">{MERCHANT_INTEGRATION_DOC_PATH}</code> and{' '}
+              <code className="text-xs">examples/node-webhook/</code>.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <pre className="overflow-x-auto rounded-lg border bg-muted/40 p-4 text-xs">
+              <code>{WEBHOOK_VERIFY_NODE_SNIPPET}</code>
+            </pre>
+            <Button type="button" variant="outline" onClick={() => void copyVerificationSnippet()}>
+              <Copy className="size-4" />
+              Copy Node.js snippet
+            </Button>
           </CardContent>
         </Card>
 
