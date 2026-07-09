@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
 
 import Prose from "components/prose";
-import { getPage, getPages } from "lib/commerce";
+import { getStaticPage, getStaticPages } from "lib/content";
 import { notFound } from "next/navigation";
 
-export async function generateStaticParams() {
-  const pages = await getPages();
-  return pages.map((page) => ({ page: page.handle }));
+export function generateStaticParams() {
+  return getStaticPages().map((page) => ({ page: page.handle }));
 }
 
 export async function generateMetadata(props: {
   params: Promise<{ page: string }>;
 }): Promise<Metadata> {
   const params = await props.params;
-  const page = await getPage(params.page);
+  const page = getStaticPage(params.page);
 
   if (!page) return notFound();
 
@@ -32,7 +31,7 @@ export default async function Page(props: {
   params: Promise<{ page: string }>;
 }) {
   const params = await props.params;
-  const page = await getPage(params.page);
+  const page = getStaticPage(params.page);
 
   if (!page) return notFound();
 

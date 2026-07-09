@@ -6,9 +6,6 @@ import {
   carts,
   collectionProducts,
   collections,
-  menuItems,
-  menus,
-  pages,
   productImages,
   productOptions,
   products,
@@ -24,8 +21,6 @@ import type {
   CartItem,
   Collection,
   Image,
-  Menu,
-  Page,
   Product,
   ProductOption,
   ProductVariant,
@@ -513,74 +508,6 @@ export async function getCollections(): Promise<Collection[]> {
         path: `/search/${collection.handle}`,
       })),
   ];
-}
-
-export async function getMenu(handle: string): Promise<Menu[]> {
-  "use cache";
-  cacheTag(TAGS.menus);
-  cacheLife("days");
-
-  const [menu] = await db.select().from(menus).where(eq(menus.handle, handle));
-  if (!menu) return [];
-
-  const items = await db
-    .select()
-    .from(menuItems)
-    .where(eq(menuItems.menuId, menu.id))
-    .orderBy(asc(menuItems.position));
-
-  return items.map((item) => ({
-    title: item.title,
-    path: item.path,
-  }));
-}
-
-export async function getPage(handle: string): Promise<Page | undefined> {
-  "use cache";
-  cacheTag(TAGS.pages);
-  cacheLife("days");
-
-  const [page] = await db.select().from(pages).where(eq(pages.handle, handle));
-
-  if (!page) {
-    return undefined;
-  }
-
-  return {
-    id: page.id,
-    title: page.title,
-    handle: page.handle,
-    body: page.body,
-    bodySummary: page.bodySummary,
-    seo: {
-      title: page.seoTitle || page.title,
-      description: page.seoDescription || page.bodySummary,
-    },
-    createdAt: page.createdAt.toISOString(),
-    updatedAt: page.updatedAt.toISOString(),
-  };
-}
-
-export async function getPages(): Promise<Page[]> {
-  "use cache";
-  cacheTag(TAGS.pages);
-  cacheLife("days");
-
-  const rows = await db.select().from(pages).orderBy(asc(pages.title));
-
-  return rows.map((page) => ({
-    id: page.id,
-    title: page.title,
-    handle: page.handle,
-    body: page.body,
-    bodySummary: page.bodySummary,
-    seo: {
-      title: page.seoTitle || page.title,
-      description: page.seoDescription || page.bodySummary,
-    },
-    createdAt: page.createdAt.toISOString(),
-    updatedAt: page.updatedAt.toISOString(),
-  }));
 }
 
 export async function getProduct(handle: string): Promise<Product | undefined> {

@@ -18,9 +18,6 @@ const {
   cartItems,
   collectionProducts,
   collections,
-  menuItems,
-  menus,
-  pages,
   productImages,
   productOptions,
   products,
@@ -36,9 +33,6 @@ async function seed() {
   await db.delete(productOptions);
   await db.delete(products);
   await db.delete(collections);
-  await db.delete(menuItems);
-  await db.delete(menus);
-  await db.delete(pages);
 
   const catalog = [
     {
@@ -273,85 +267,8 @@ async function seed() {
     }
   }
 
-  await db.insert(pages).values([
-    {
-      handle: "about",
-      title: "About",
-      body: "<p>FiberFlow Store is a demo storefront backed by Neon Postgres and Drizzle.</p>",
-      bodySummary: "A FiberFlow demo storefront backed by Neon and Drizzle.",
-      seoTitle: "About",
-      seoDescription: "About FiberFlow Store",
-    },
-    {
-      handle: "faq",
-      title: "FAQ",
-      body: "<p><strong>How do I restock?</strong> Update rows in Neon or re-run <code>bun run db:seed</code>.</p><p><strong>Where is checkout?</strong> Cart checkout is a local demo page — wire FiberFlow payments next.</p>",
-      bodySummary: "Common questions about the demo store.",
-      seoTitle: "FAQ",
-      seoDescription: "Frequently asked questions",
-    },
-  ]);
-
-  const [headerMenu] = await db
-    .insert(menus)
-    .values({ handle: "next-js-frontend-header-menu" })
-    .returning();
-  const [footerMenu] = await db
-    .insert(menus)
-    .values({ handle: "next-js-frontend-footer-menu" })
-    .returning();
-
-  if (!headerMenu || !footerMenu) {
-    throw new Error("Failed to insert menus");
-  }
-
-  await db.insert(menuItems).values([
-    {
-      menuId: headerMenu.id,
-      title: "All",
-      path: "/search",
-      position: 0,
-    },
-    {
-      menuId: headerMenu.id,
-      title: "Apparel",
-      path: "/search/apparel",
-      position: 1,
-    },
-    {
-      menuId: headerMenu.id,
-      title: "Accessories",
-      path: "/search/accessories",
-      position: 2,
-    },
-    {
-      menuId: footerMenu.id,
-      title: "Home",
-      path: "/",
-      position: 0,
-    },
-    {
-      menuId: footerMenu.id,
-      title: "About",
-      path: "/about",
-      position: 1,
-    },
-    {
-      menuId: footerMenu.id,
-      title: "FAQ",
-      path: "/faq",
-      position: 2,
-    },
-    {
-      menuId: footerMenu.id,
-      title: "Terms",
-      path: "/search",
-      position: 3,
-    },
-  ]);
-
   console.log(
-    `Seeded ${insertedProducts.length} products, ${collectionDefs.length} collections, 2 pages, and 2 menus.`,
+    `Seeded ${insertedProducts.length} products and ${collectionDefs.length} collections.`,
   );
 }
 

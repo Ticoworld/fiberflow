@@ -109,46 +109,6 @@ export const collectionProducts = pgTable(
   ],
 );
 
-export const pages = pgTable(
-  "pages",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    handle: text("handle").notNull(),
-    title: text("title").notNull(),
-    body: text("body").notNull().default(""),
-    bodySummary: text("body_summary").notNull().default(""),
-    seoTitle: text("seo_title"),
-    seoDescription: text("seo_description"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [uniqueIndex("pages_handle_idx").on(table.handle)],
-);
-
-export const menus = pgTable(
-  "menus",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    handle: text("handle").notNull(),
-  },
-  (table) => [uniqueIndex("menus_handle_idx").on(table.handle)],
-);
-
-export const menuItems = pgTable("menu_items", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  menuId: uuid("menu_id")
-    .notNull()
-    .references(() => menus.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  path: text("path").notNull(),
-  position: integer("position").notNull().default(0),
-});
-
 export const carts = pgTable("carts", {
   id: uuid("id").defaultRandom().primaryKey(),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -226,17 +186,6 @@ export const collectionProductsRelations = relations(
     }),
   }),
 );
-
-export const menusRelations = relations(menus, ({ many }) => ({
-  items: many(menuItems),
-}));
-
-export const menuItemsRelations = relations(menuItems, ({ one }) => ({
-  menu: one(menus, {
-    fields: [menuItems.menuId],
-    references: [menus.id],
-  }),
-}));
 
 export const cartsRelations = relations(carts, ({ many }) => ({
   items: many(cartItems),

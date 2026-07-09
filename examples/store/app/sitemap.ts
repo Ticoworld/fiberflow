@@ -1,4 +1,5 @@
-import { getCollections, getPages, getProducts } from "lib/commerce";
+import { getCollections, getProducts } from "lib/commerce";
+import { getStaticPages } from "lib/content";
 import { baseUrl, validateEnvironmentVariables } from "lib/utils";
 import { MetadataRoute } from "next";
 
@@ -17,11 +18,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date().toISOString(),
   }));
 
-  const [collections, products, pages] = await Promise.all([
+  const [collections, products] = await Promise.all([
     getCollections(),
     getProducts({}),
-    getPages(),
   ]);
+  const pages = getStaticPages();
 
   const collectionRoutes: Route[] = collections.map((collection) => ({
     url: `${baseUrl}${collection.path}`,

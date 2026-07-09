@@ -1,8 +1,7 @@
 import CartModal from "components/cart/modal";
 import OpenCart from "components/cart/open-cart";
 import LogoSquare from "components/logo-square";
-import { getMenu } from "lib/commerce";
-import { Menu } from "lib/commerce/types";
+import { headerMenu } from "lib/content";
 import Link from "next/link";
 import { Suspense } from "react";
 import MobileMenu from "./mobile-menu";
@@ -10,14 +9,12 @@ import Search, { SearchSkeleton } from "./search";
 
 const { SITE_NAME } = process.env;
 
-export async function Navbar() {
-  const menu = await getMenu("next-js-frontend-header-menu");
-
+export function Navbar() {
   return (
     <nav className="relative flex items-center justify-between p-4 lg:px-6">
       <div className="block flex-none md:hidden">
         <Suspense fallback={null}>
-          <MobileMenu menu={menu} />
+          <MobileMenu menu={headerMenu} />
         </Suspense>
       </div>
       <div className="flex w-full items-center">
@@ -32,9 +29,9 @@ export async function Navbar() {
               {SITE_NAME}
             </div>
           </Link>
-          {menu.length ? (
+          {headerMenu.length ? (
             <ul className="hidden gap-6 text-sm md:flex md:items-center">
-              {menu.map((item: Menu) => (
+              {headerMenu.map((item) => (
                 <li key={item.title}>
                   <Link
                     href={item.path}

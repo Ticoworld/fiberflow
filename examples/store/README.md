@@ -28,7 +28,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | Script | Description |
 | --- | --- |
 | `bun run db:push` | Push Drizzle schema to Neon |
-| `bun run db:seed` | Seed products, collections, menus, and pages |
+| `bun run db:seed` | Seed products and collections |
 | `bun run db:studio` | Open Drizzle Studio |
 | `bun run dev` | Start Next.js |
 
