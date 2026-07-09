@@ -4,15 +4,10 @@ import clsx from "clsx";
 import { Menu } from "lib/commerce/types";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
 
-export function FooterMenuItem({ item }: { item: Menu }) {
+function FooterMenuItem({ item }: { item: Menu }) {
   const pathname = usePathname();
-  const [active, setActive] = useState(pathname === item.path);
-
-  useEffect(() => {
-    setActive(pathname === item.path);
-  }, [pathname, item.path]);
+  const active = pathname === item.path;
 
   return (
     <li>
@@ -37,9 +32,9 @@ export default function FooterMenu({ menu }: { menu: Menu[] }) {
   return (
     <nav>
       <ul>
-        {menu.map((item: Menu) => {
-          return <FooterMenuItem key={item.title} item={item} />;
-        })}
+        {menu.map((item) => (
+          <FooterMenuItem key={item.title} item={item} />
+        ))}
       </ul>
     </nav>
   );

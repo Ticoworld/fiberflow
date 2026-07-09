@@ -15,7 +15,7 @@ import {
   productVariants,
 } from "lib/db/schema";
 import { baseUrl } from "lib/utils";
-import { revalidateTag } from "next/cache";
+import { cacheLife, cacheTag, revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -417,6 +417,10 @@ export async function getCart(): Promise<Cart | undefined> {
 export async function getCollection(
   handle: string,
 ): Promise<Collection | undefined> {
+  "use cache";
+  cacheTag(TAGS.collections);
+  cacheLife("hours");
+
   const [collection] = await db
     .select()
     .from(collections)
@@ -446,6 +450,10 @@ export async function getCollectionProducts({
   reverse?: boolean;
   sortKey?: string;
 }): Promise<Product[]> {
+  "use cache";
+  cacheTag(TAGS.collections, TAGS.products);
+  cacheLife("hours");
+
   const [collectionRow] = await db
     .select()
     .from(collections)
@@ -470,6 +478,10 @@ export async function getCollectionProducts({
 }
 
 export async function getCollections(): Promise<Collection[]> {
+  "use cache";
+  cacheTag(TAGS.collections);
+  cacheLife("hours");
+
   const rows = await db
     .select()
     .from(collections)
@@ -504,6 +516,10 @@ export async function getCollections(): Promise<Collection[]> {
 }
 
 export async function getMenu(handle: string): Promise<Menu[]> {
+  "use cache";
+  cacheTag(TAGS.menus);
+  cacheLife("days");
+
   const [menu] = await db.select().from(menus).where(eq(menus.handle, handle));
   if (!menu) return [];
 
@@ -520,6 +536,10 @@ export async function getMenu(handle: string): Promise<Menu[]> {
 }
 
 export async function getPage(handle: string): Promise<Page | undefined> {
+  "use cache";
+  cacheTag(TAGS.pages);
+  cacheLife("days");
+
   const [page] = await db.select().from(pages).where(eq(pages.handle, handle));
 
   if (!page) {
@@ -542,6 +562,10 @@ export async function getPage(handle: string): Promise<Page | undefined> {
 }
 
 export async function getPages(): Promise<Page[]> {
+  "use cache";
+  cacheTag(TAGS.pages);
+  cacheLife("days");
+
   const rows = await db.select().from(pages).orderBy(asc(pages.title));
 
   return rows.map((page) => ({
@@ -560,6 +584,10 @@ export async function getPages(): Promise<Page[]> {
 }
 
 export async function getProduct(handle: string): Promise<Product | undefined> {
+  "use cache";
+  cacheTag(TAGS.products);
+  cacheLife("hours");
+
   const [product] = await db
     .select()
     .from(products)
@@ -588,6 +616,10 @@ export async function getProduct(handle: string): Promise<Product | undefined> {
 export async function getProductRecommendations(
   productId: string,
 ): Promise<Product[]> {
+  "use cache";
+  cacheTag(TAGS.products);
+  cacheLife("hours");
+
   const rows = await db
     .select({ id: products.id })
     .from(products)
@@ -607,6 +639,10 @@ export async function getProducts({
   reverse?: boolean;
   sortKey?: string;
 }): Promise<Product[]> {
+  "use cache";
+  cacheTag(TAGS.products);
+  cacheLife("hours");
+
   const filters = query
     ? or(
         ilike(products.title, `%${query}%`),
@@ -642,7 +678,7 @@ export async function revalidate(req: NextRequest): Promise<NextResponse> {
     : [TAGS.products, TAGS.collections];
 
   for (const tag of tags) {
-    revalidateTag(tag, "seconds");
+    revalidateTag(tag, "max");
   }
 
   return NextResponse.json({ status: 200, revalidated: true, now: Date.now() });

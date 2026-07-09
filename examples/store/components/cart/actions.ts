@@ -71,7 +71,7 @@ export async function updateItemQuantity(
       (line) => line.merchandise.id === merchandiseId
     );
 
-    if (lineItem && lineItem.id) {
+    if (lineItem?.id) {
       if (quantity === 0) {
         await removeFromCart([lineItem.id]);
       } else {
@@ -84,7 +84,6 @@ export async function updateItemQuantity(
         ]);
       }
     } else if (quantity > 0) {
-      // If the item doesn't exist in the cart and quantity > 0, add it
       await addToCart([{ merchandiseId, quantity }]);
     }
 

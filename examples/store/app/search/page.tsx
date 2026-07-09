@@ -2,17 +2,20 @@ import Grid from "components/grid";
 import ProductGridItems from "components/layout/product-grid-items";
 import { defaultSort, sorting } from "lib/constants";
 import { getProducts } from "lib/commerce";
+import { Suspense } from "react";
 
 export const metadata = {
   title: "Search",
   description: "Search for products in the store.",
 };
 
-export default async function SearchPage(props: {
+async function SearchResults({
+  searchParams,
+}: {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const searchParams = await props.searchParams;
-  const { sort, q: searchValue } = searchParams as { [key: string]: string };
+  const resolved = await searchParams;
+  const { sort, q: searchValue } = (resolved ?? {}) as { [key: string]: string };
   const { sortKey, reverse } =
     sorting.find((item) => item.slug === sort) || defaultSort;
 
@@ -35,5 +38,15 @@ export default async function SearchPage(props: {
         </Grid>
       ) : null}
     </>
+  );
+}
+
+export default function SearchPage(props: {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  return (
+    <Suspense fallback={null}>
+      <SearchResults searchParams={props.searchParams} />
+    </Suspense>
   );
 }

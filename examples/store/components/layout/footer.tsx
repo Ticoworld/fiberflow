@@ -1,18 +1,33 @@
-import Link from "next/link";
-
 import FooterMenu from "components/layout/footer-menu";
 import LogoSquare from "components/logo-square";
 import { getMenu } from "lib/commerce";
+import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 const { COMPANY_NAME, SITE_NAME } = process.env;
+const COPYRIGHT_START_YEAR = 2023;
 
-export default async function Footer() {
+async function FooterMenuFromCache() {
+  const menu = await getMenu("next-js-frontend-footer-menu");
+  return <FooterMenu menu={menu} />;
+}
+
+async function CopyrightDate() {
+  await connection();
+  const currentYear = new Date().getFullYear();
+  return (
+    <>
+      {currentYear > COPYRIGHT_START_YEAR
+        ? `${COPYRIGHT_START_YEAR}-${currentYear}`
+        : COPYRIGHT_START_YEAR}
+    </>
+  );
+}
+
+export default function Footer() {
   const skeleton =
     "w-full h-6 animate-pulse rounded-sm bg-neutral-200 dark:bg-neutral-700";
-  const menu = await getMenu("next-js-frontend-footer-menu");
-  const currentYear = new Date().getFullYear();
-  const copyrightDate = 2023 + (currentYear > 2023 ? `-${currentYear}` : "");
   const copyrightName = COMPANY_NAME || SITE_NAME || "";
 
   return (
@@ -39,7 +54,7 @@ export default async function Footer() {
             </div>
           }
         >
-          <FooterMenu menu={menu} />
+          <FooterMenuFromCache />
         </Suspense>
         <div className="md:ml-auto">
           <a
@@ -56,10 +71,12 @@ export default async function Footer() {
       <div className="border-t border-neutral-200 py-6 text-sm dark:border-neutral-700">
         <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-1 px-4 md:flex-row md:gap-0 md:px-4 min-[1320px]:px-0">
           <p>
-            &copy; {copyrightDate} {copyrightName}
-            {copyrightName.length && !copyrightName.endsWith(".")
-              ? "."
-              : ""}{" "}
+            &copy;{" "}
+            <Suspense fallback={<>{COPYRIGHT_START_YEAR}</>}>
+              <CopyrightDate />
+            </Suspense>{" "}
+            {copyrightName}
+            {copyrightName.length && !copyrightName.endsWith(".") ? "." : ""}{" "}
             All rights reserved.
           </p>
           <hr className="mx-4 hidden h-4 w-[1px] border-l border-neutral-400 md:inline-block" />

@@ -3,12 +3,17 @@ import Footer from "components/layout/footer";
 import { Gallery } from "components/product/gallery";
 import { ProductDescription } from "components/product/product-description";
 import { HIDDEN_PRODUCT_TAG } from "lib/constants";
-import { getProduct, getProductRecommendations } from "lib/commerce";
+import { getProduct, getProductRecommendations, getProducts } from "lib/commerce";
 import type { Image } from "lib/commerce/types";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+
+export async function generateStaticParams() {
+  const products = await getProducts({});
+  return products.map((product) => ({ handle: product.handle }));
+}
 
 export async function generateMetadata(props: {
   params: Promise<{ handle: string }>;
@@ -103,7 +108,9 @@ export default async function ProductPage(props: {
             </Suspense>
           </div>
         </div>
-        <RelatedProducts id={product.id} />
+        <Suspense fallback={null}>
+          <RelatedProducts id={product.id} />
+        </Suspense>
       </div>
       <Footer />
     </>
