@@ -58,7 +58,7 @@ You will need:
 - A free [Neon](https://neon.tech) Postgres database (or any Postgres)
 - [Bun](https://bun.sh) (dashboard + database setup)
 - [`ckb-cli`](https://github.com/nervosnetwork/ckb-cli/releases) (create the node wallet key)
-- About **10,000 testnet CKB** from the [faucet](https://faucet.nervos.org)
+- About **100,000 testnet CKB** from the [faucet](https://faucet.nervos.org) (enough for a large receive channel)
 
 Minimal command outline (details and order matter — use the full guide):
 

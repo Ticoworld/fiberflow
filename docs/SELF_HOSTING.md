@@ -59,7 +59,7 @@ All later commands assume you are in this folder (the repo root), unless a step 
 | [Bun](https://bun.sh)                                          | Database setup + dashboard                | On Mac/Linux: `curl -fsSL https://bun.sh/install | bash` then open a **new** terminal.                                                   |
 | A free [Neon](https://neon.tech) Postgres database             | Stores accounts, invoices, webhooks       | Sign up → create a project → copy the connection string (`postgresql://…`). Use the **pooled** URL if Neon shows one.                    |
 | `[ckb-cli](https://github.com/nervosnetwork/ckb-cli/releases)` | Creates your node wallet key              | Download the release for your OS, unzip it, and put `ckb-cli` on your PATH (or run it via the full path to the binary).                  |
-| About **10,000 testnet CKB**                                   | Funds your node so you can open a channel | [faucet.nervos.org](https://faucet.nervos.org) after you have an address (step 1)                                                        |
+| About **100,000 testnet CKB**                                  | Funds your node so you can open a large enough channel | [faucet.nervos.org](https://faucet.nervos.org) after you have an address (step 1) — request multiple times if needed |
 
 
 **Optional but useful later:** a Fiber-capable wallet so *you* can act as a test customer and pay a test invoice. See [§7 Test payment](#7-make-a-test-payment).
@@ -243,7 +243,7 @@ Invoices alone are not enough. Your node must be funded and connected to the Fib
 ### 4.1 Send testnet CKB to your node
 
 1. Copy the **testnet address** from `ckb-cli util key-info --privkey-path data/ckb/key` (or look for an address in `fnn-cli info`).
-2. Open [faucet.nervos.org](https://faucet.nervos.org), paste the address, and request CKB. Aim for about **10,000 CKB**.
+2. Open [faucet.nervos.org](https://faucet.nervos.org), paste the address, and request CKB. Aim for about **100,000 CKB** (use the faucet more than once if each drip is smaller). You need enough to open the channel below and still keep a little spare for fees.  
 3. Confirm the funds arrived before continuing:
 
 ```bash
@@ -295,12 +295,14 @@ export NO_PROXY=127.0.0.1,localhost
 
 ### 4.3 Open a channel
 
-Public nodes usually accept channels of **at least 499 CKB**. This opens **500 CKB** (amount is in shannons: `1 CKB = 100000000`):
+Public nodes usually accept channels of **at least 499 CKB**. A tiny channel (e.g. 500 CKB) leaves almost no room for real checkout amounts after reserves — open something large enough to receive meaningful payments.
+
+This opens **50,000 CKB** (amount is in shannons: `1 CKB = 100000000`). You can use `2000000000000` (20,000 CKB) or `10000000000000` (100,000 CKB) instead if you prefer; keep faucet balance above the funding amount.
 
 ```bash
 docker compose exec fiber fnn-cli channel open_channel \
   --pubkey "$PEER_PUBKEY" \
-  --funding-amount 50000000000 \
+  --funding-amount 5000000000000 \
   --public true
 ```
 
@@ -438,7 +440,7 @@ There is no Shopify/WooCommerce plugin yet. Any site that can call an HTTPS API 
 | API won’t start                   | Check `DATABASE_URL`, run `bun run db:push` in `server/`, confirm Postgres is reachable                                            |
 | Can’t create invoices (`502`)     | Wait for Fiber to finish starting; check internet (price feed)                                                                     |
 | Invoice never becomes paid        | Channel not ready, or wait a few minutes after opening; confirm testnet vs mainnet match                                           |
-| `open_channel` fails              | Fund at least ~500 CKB; connect the peer first; confirm faucet balance on the explorer                                             |
+| `open_channel` fails              | Fund well above the channel size (e.g. ~100,000 CKB for a 50,000 CKB channel); connect the peer first; confirm balance on the explorer |
 | `connect_peer` fails              | Try the other public pubkey, or refresh peers from [Network Resources](https://www.fiber.world/docs/quick-start/network-resources) |
 | Browser CORS errors               | Put your site origin in `CORS_ORIGIN` (local: `http://localhost:5173`; production: apex + checkout)                                |
 | Wrong payment link host           | Set `PAYMENT_APP_URL` (and `VITE_PAYMENT_APP_URL` for production builds)                                                           |
