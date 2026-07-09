@@ -334,7 +334,7 @@ You do not need a special RUSD channel for normal FiberFlow checkout.
 
 ```bash
 cd frontend
-cp .env.example .env.local
+cp .env.example .env
 # Confirm VITE_API_URL=http://localhost:3000
 bun install
 bun run dev
