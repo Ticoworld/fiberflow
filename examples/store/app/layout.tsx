@@ -1,11 +1,9 @@
 import { CartProvider } from "components/cart/cart-context";
 import { Navbar } from "components/layout/navbar";
-import { WelcomeToast } from "components/welcome-toast";
 import { GeistSans } from "geist/font/sans";
 import { getCart } from "lib/commerce";
 import { baseUrl } from "lib/utils";
 import { ReactNode, Suspense } from "react";
-import { Toaster } from "sonner";
 import "./globals.css";
 
 const { SITE_NAME } = process.env;
@@ -33,11 +31,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <Suspense fallback={null}>
           <CartProviderFromCookies>
             <Navbar />
-            <main>
-              {children}
-              <Toaster closeButton />
-              <WelcomeToast />
-            </main>
+            <main>{children}</main>
           </CartProviderFromCookies>
         </Suspense>
       </body>

@@ -277,10 +277,10 @@ async function seed() {
     {
       handle: "about",
       title: "About",
-      body: "<p>This demo store runs on Next.js, Neon Postgres, and Drizzle — no Shopify required.</p>",
+      body: "<p>FiberFlow Store is a demo storefront backed by Neon Postgres and Drizzle.</p>",
       bodySummary: "A FiberFlow demo storefront backed by Neon and Drizzle.",
       seoTitle: "About",
-      seoDescription: "About this demo store",
+      seoDescription: "About FiberFlow Store",
     },
     {
       handle: "faq",

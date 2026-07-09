@@ -22,8 +22,7 @@
     "geist": "^1.7.2",
     "next": "16.2.10",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "sonner": "^2.0.7"
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "@tailwindcss/container-queries": "^0.1.1",

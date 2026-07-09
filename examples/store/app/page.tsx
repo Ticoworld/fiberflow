@@ -4,8 +4,7 @@ import Footer from "components/layout/footer";
 import { Suspense } from "react";
 
 export const metadata = {
-  description:
-    "High-performance ecommerce store built with Next.js, Neon, and Drizzle.",
+  description: "FiberFlow storefront powered by Neon and Drizzle.",
   openGraph: {
     type: "website",
   },
