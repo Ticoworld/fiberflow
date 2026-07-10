@@ -8,6 +8,18 @@ FiberFlow gives you a landing page, merchant dashboard, checkout page, API, and 
 
 ---
 
+## Try the live demo
+
+The example store is already connected to a hosted FiberFlow instance.
+
+1. Run a Fiber node on testnet ([Fiber Studio](https://github.com/chukwuma619/fiber-studio) recommended, or the [CLI](https://www.fiber.world/docs/quick-start/run-a-node)), connect to the demo peer, and open a channel — details in [MERCHANT_INTEGRATION.md](docs/MERCHANT_INTEGRATION.md#see-it-in-action-live-demo).
+2. Open the [demo store](https://fiberflow-eight.vercel.app/), register or sign in.
+3. Add item(s) to the cart, check out, and pay on the FiberFlow payment page.
+
+To explore the merchant side, open [backr.site](https://backr.site/), sign up, and follow the dashboard steps in the same guide.
+
+---
+
 ## Path to first payment
 
 | Step | Guide | Who it’s for |
@@ -45,6 +57,7 @@ A **payment channel** is required before customers can pay. Creating invoices al
 | API (`server/`) | Invoices, auth, webhooks |
 | Frontend (`frontend/`) | Landing page, merchant dashboard, and customer checkout |
 | PostgreSQL | You provide this (e.g. Neon) |
+| Example store (`examples/store/`) | Next.js storefront integrated with FiberFlow |
 
 ---
 

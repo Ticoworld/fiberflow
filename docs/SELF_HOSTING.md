@@ -379,9 +379,9 @@ Until a small invoice is **paid**, you have not finished setup.
 2. Open the **payment link** (checkout page). You should see the amount, a QR code, and a Fiber payment address.
 3. Pay it with a **Fiber-compatible wallet** that can send on **testnet**.
 
-**Finding a wallet:** Fiber wallets are still evolving. Start from [Fiber Network Resources](https://www.fiber.world/docs/quick-start/network-resources) and the [Fiber docs](https://www.fiber.world/docs/quick-start/run-a-node). For CKB testnet funds and explorers, use the [Nervos faucet](https://faucet.nervos.org) and [testnet explorer](https://explorer.nervos.org/aggron). JoyID ([testnet.joyid.dev](https://testnet.joyid.dev/)) is commonly used for CKB testnet; confirm your wallet can **pay a Fiber invoice / address** before relying on it for the test.
+**Finding a wallet:** Fiber wallets are still evolving. Prefer [Fiber Studio](https://github.com/chukwuma619/fiber-studio) (recommended) or run [`fnn` via the CLI](https://www.fiber.world/docs/quick-start/run-a-node). Also see [Fiber Network Resources](https://www.fiber.world/docs/quick-start/network-resources). For CKB testnet funds and explorers, use the [Nervos faucet](https://faucet.nervos.org) and [testnet explorer](https://explorer.nervos.org).
 
-1. Watch the invoice status become **paid**, and confirm your webhook logs `invoice.paid` if you set one up.
+4. Watch the invoice status become **paid**, and confirm your webhook logs `invoice.paid` if you set one up.
 
 If payment fails, wait a few more minutes after `ChannelReady`, confirm you are on **testnet** everywhere, and re-check `list_channels`.
 
@@ -405,7 +405,7 @@ Customer checks out on your site
         → you ship / unlock the order
 ```
 
-Step-by-step API examples, webhook signature checks, and a sample server: **[MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md)** and **[examples/node-webhook/](../examples/node-webhook/)**.
+Step-by-step API examples, webhook signature checks, and a sample server: **[MERCHANT_INTEGRATION.md](MERCHANT_INTEGRATION.md)** and **[examples/node-webhook/](../examples/node-webhook/)**. A complete Next.js storefront is in **[examples/store/](../examples/store/)**.
 
 There is no Shopify/WooCommerce plugin yet. Any site that can call an HTTPS API and receive a webhook can integrate. If you are not a developer, give that guide plus your API key and webhook secret to whoever builds your store checkout.
 

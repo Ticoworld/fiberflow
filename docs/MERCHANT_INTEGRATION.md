@@ -13,6 +13,56 @@ If FiberFlow is not running yet, start with [SELF_HOSTING.md](SELF_HOSTING.md). 
 
 ---
 
+## See it in action (live demo)
+
+The example store at [fiberflow-eight.vercel.app](https://fiberflow-eight.vercel.app/) is already wired to FiberFlow at [backr.site](https://backr.site/). You do not need to deploy anything to try checkout.
+
+### Pay at the demo store
+
+1. Run a Fiber node on **testnet** so you can pay — [Fiber Studio](https://github.com/chukwuma619/fiber-studio) (recommended) or the [CLI](https://www.fiber.world/docs/quick-start/run-a-node).
+2. Connect to this peer and open a channel with it (recommended for the demo):
+
+   | | |
+   |--|--|
+   | **Peer** | `03bf4208b9ada97a5589ef9924819fe511b2a5e9ed3812df21a79435d39a147b10` |
+   | **Multiaddr** | `/ip4/49.13.159.45/tcp/8228/p2p/Qmc9gzZB7aHYrVNxpakaQ8mLFchnnkesLhDfPPJEHQNbPt` |
+
+   Fiber Studio: paste the peer pubkey / multiaddr in the UI, connect, then open a channel.
+
+   CLI example:
+
+   ```bash
+   export PEER_PUBKEY=03bf4208b9ada97a5589ef9924819fe511b2a5e9ed3812df21a79435d39a147b10
+
+   fnn-cli peer connect_peer \
+     --pubkey "$PEER_PUBKEY" \
+     --address "/ip4/49.13.159.45/tcp/8228/p2p/Qmc9gzZB7aHYrVNxpakaQ8mLFchnnkesLhDfPPJEHQNbPt"
+
+   fnn-cli channel open_channel \
+     --pubkey "$PEER_PUBKEY" \
+     --funding-amount 5000000000000 \
+     --public true
+   ```
+
+   Wait until the channel is **ChannelReady**, then give the network a few more minutes before paying.
+
+3. Open the demo store, register or sign in.
+4. Add one or more items to the cart and go to checkout.
+5. Place the order — you are redirected to the FiberFlow payment page.
+6. Pay from your Fiber node. When it settles, you return to the store and the order shows as paid.
+
+### Explore the FiberFlow dashboard (optional)
+
+1. Open [backr.site](https://backr.site/) and sign up / sign in.
+2. Create a store (name + slug).
+3. **Settings** → create an API key (`ffg_...`).
+4. **Webhooks** → add an endpoint URL and copy the signing secret (`whsec_...`).
+5. Create a small test invoice and open the payment link, or use the demo store flow above to see a paid invoice appear.
+
+Source for the storefront: [examples/store/](../examples/store/).
+
+---
+
 ## For store owners (no developer yet)
 
 You can still use FiberFlow today:
