@@ -44,13 +44,13 @@ async function seed() {
       tags: ["apparel", "featured"],
       options: [{ name: "Size", values: ["S", "M", "L", "XL"] }],
       variants: [
-        { title: "S", options: [{ name: "Size", value: "S" }], price: "48.00" },
-        { title: "M", options: [{ name: "Size", value: "M" }], price: "48.00" },
-        { title: "L", options: [{ name: "Size", value: "L" }], price: "48.00" },
+        { title: "S", options: [{ name: "Size", value: "S" }], price: "9.00" },
+        { title: "M", options: [{ name: "Size", value: "M" }], price: "9.00" },
+        { title: "L", options: [{ name: "Size", value: "L" }], price: "9.00" },
         {
           title: "XL",
           options: [{ name: "Size", value: "XL" }],
-          price: "48.00",
+          price: "9.00",
         },
       ],
       images: [
@@ -72,12 +72,12 @@ async function seed() {
         {
           title: "Black",
           options: [{ name: "Color", value: "Black" }],
-          price: "28.00",
+          price: "8.00",
         },
         {
           title: "Stone",
           options: [{ name: "Color", value: "Stone" }],
-          price: "28.00",
+          price: "8.00",
         },
       ],
       images: [
@@ -99,7 +99,7 @@ async function seed() {
         {
           title: "Default Title",
           options: [{ name: "Title", value: "Default Title" }],
-          price: "18.00",
+          price: "7.00",
         },
       ],
       images: [
@@ -118,9 +118,9 @@ async function seed() {
       tags: ["apparel"],
       options: [{ name: "Size", values: ["S", "M", "L"] }],
       variants: [
-        { title: "S", options: [{ name: "Size", value: "S" }], price: "32.00" },
-        { title: "M", options: [{ name: "Size", value: "M" }], price: "32.00" },
-        { title: "L", options: [{ name: "Size", value: "L" }], price: "32.00" },
+        { title: "S", options: [{ name: "Size", value: "S" }], price: "6.00" },
+        { title: "M", options: [{ name: "Size", value: "M" }], price: "6.00" },
+        { title: "L", options: [{ name: "Size", value: "L" }], price: "6.00" },
       ],
       images: [
         {
@@ -138,8 +138,8 @@ async function seed() {
       tags: ["accessories"],
       options: [{ name: "Size", values: ["M", "L"] }],
       variants: [
-        { title: "M", options: [{ name: "Size", value: "M" }], price: "14.00" },
-        { title: "L", options: [{ name: "Size", value: "L" }], price: "14.00" },
+        { title: "M", options: [{ name: "Size", value: "M" }], price: "4.00" },
+        { title: "L", options: [{ name: "Size", value: "L" }], price: "4.00" },
       ],
       images: [
         {
