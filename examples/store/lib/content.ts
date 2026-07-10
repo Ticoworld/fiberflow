@@ -10,6 +10,7 @@ export const footerMenu: Menu[] = [
   { title: "Home", path: "/" },
   { title: "About", path: "/about" },
   { title: "FAQ", path: "/faq" },
+  { title: "Account", path: "/account" },
 ];
 
 const pages: Page[] = [

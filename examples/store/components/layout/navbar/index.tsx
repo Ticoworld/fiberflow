@@ -1,13 +1,28 @@
+import { UserMenu } from "components/auth/user-menu";
 import CartModal from "components/cart/modal";
 import OpenCart from "components/cart/open-cart";
 import LogoSquare from "components/logo-square";
 import { headerMenu } from "lib/content";
+import { getSession } from "lib/session";
 import Link from "next/link";
 import { Suspense } from "react";
 import MobileMenu from "./mobile-menu";
 import Search, { SearchSkeleton } from "./search";
 
 const { SITE_NAME } = process.env;
+
+async function NavbarAuth() {
+  const session = await getSession();
+  return (
+    <UserMenu
+      user={
+        session?.user
+          ? { name: session.user.name, email: session.user.email }
+          : null
+      }
+    />
+  );
+}
 
 export function Navbar() {
   return (
@@ -50,7 +65,10 @@ export function Navbar() {
             <Search />
           </Suspense>
         </div>
-        <div className="flex justify-end md:w-1/3">
+        <div className="flex items-center justify-end md:w-1/3">
+          <Suspense fallback={null}>
+            <NavbarAuth />
+          </Suspense>
           <Suspense fallback={<OpenCart />}>
             <CartModal />
           </Suspense>

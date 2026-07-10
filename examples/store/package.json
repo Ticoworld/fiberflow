@@ -17,6 +17,7 @@
     "@headlessui/react": "^2.2.10",
     "@heroicons/react": "^2.2.0",
     "@neondatabase/serverless": "^1.1.0",
+    "better-auth": "^1.6.23",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
     "geist": "^1.7.2",

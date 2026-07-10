@@ -11,6 +11,10 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { user } from "./auth-schema";
+
+export * from "./auth-schema";
+
 export const products = pgTable(
   "products",
   {
@@ -111,6 +115,7 @@ export const collectionProducts = pgTable(
 
 export const carts = pgTable("carts", {
   id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -137,11 +142,52 @@ export const cartItems = pgTable(
   ],
 );
 
+export const orders = pgTable("orders", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("pending"),
+  currencyCode: text("currency_code").notNull().default("USD"),
+  subtotalAmount: numeric("subtotal_amount", {
+    precision: 12,
+    scale: 2,
+  }).notNull(),
+  totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow()
+    .$onUpdate(() => new Date()),
+});
+
+export const orderItems = pgTable("order_items", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orders.id, { onDelete: "cascade" }),
+  productId: uuid("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "restrict" }),
+  variantId: uuid("variant_id")
+    .notNull()
+    .references(() => productVariants.id, { onDelete: "restrict" }),
+  productTitle: text("product_title").notNull(),
+  variantTitle: text("variant_title").notNull(),
+  quantity: integer("quantity").notNull(),
+  unitAmount: numeric("unit_amount", { precision: 12, scale: 2 }).notNull(),
+  totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(),
+  currencyCode: text("currency_code").notNull().default("USD"),
+});
+
 export const productsRelations = relations(products, ({ many }) => ({
   options: many(productOptions),
   variants: many(productVariants),
   images: many(productImages),
   collectionProducts: many(collectionProducts),
+  orderItems: many(orderItems),
 }));
 
 export const productOptionsRelations = relations(productOptions, ({ one }) => ({
@@ -159,6 +205,7 @@ export const productVariantsRelations = relations(
       references: [products.id],
     }),
     cartItems: many(cartItems),
+    orderItems: many(orderItems),
   }),
 );
 
@@ -187,7 +234,11 @@ export const collectionProductsRelations = relations(
   }),
 );
 
-export const cartsRelations = relations(carts, ({ many }) => ({
+export const cartsRelations = relations(carts, ({ one, many }) => ({
+  user: one(user, {
+    fields: [carts.userId],
+    references: [user.id],
+  }),
   items: many(cartItems),
 }));
 
@@ -198,6 +249,29 @@ export const cartItemsRelations = relations(cartItems, ({ one }) => ({
   }),
   variant: one(productVariants, {
     fields: [cartItems.variantId],
+    references: [productVariants.id],
+  }),
+}));
+
+export const ordersRelations = relations(orders, ({ one, many }) => ({
+  user: one(user, {
+    fields: [orders.userId],
+    references: [user.id],
+  }),
+  items: many(orderItems),
+}));
+
+export const orderItemsRelations = relations(orderItems, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderItems.orderId],
+    references: [orders.id],
+  }),
+  product: one(products, {
+    fields: [orderItems.productId],
+    references: [products.id],
+  }),
+  variant: one(productVariants, {
+    fields: [orderItems.variantId],
     references: [productVariants.id],
   }),
 }));

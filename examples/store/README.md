@@ -34,6 +34,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Notes
 
+- Auth uses [Better Auth](https://www.better-auth.com/) with email/password (`/sign-in`, `/sign-up`).
 - Carts are stored in Postgres and keyed by a `cartId` cookie.
-- Checkout is a local demo page at `/checkout` (ready to wire FiberFlow payments).
+- Signed-in users can place orders at `/checkout`; order history lives at `/account`.
 - Cache revalidation: `POST /api/revalidate?secret=REVALIDATION_SECRET` with optional `{ "tags": ["products"] }`.

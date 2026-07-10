@@ -6,6 +6,8 @@ import {
   carts,
   collectionProducts,
   collections,
+  orderItems,
+  orders,
   productImages,
   productOptions,
   products,
@@ -21,6 +23,8 @@ import type {
   CartItem,
   Collection,
   Image,
+  Order,
+  OrderStatus,
   Product,
   ProductOption,
   ProductVariant,
@@ -586,6 +590,147 @@ export async function getProducts({
 
   const productList = await loadProductsByIds(rows.map((row) => row.id));
   return sortProducts(productList, sortKey, reverse);
+}
+
+export async function createOrderFromCart(userId: string): Promise<Order> {
+  const cart = await getCart();
+  if (!cart?.id || cart.totalQuantity === 0) {
+    throw new Error("Cart is empty");
+  }
+
+  const currencyCode = cart.cost.totalAmount.currencyCode;
+
+  const [order] = await db
+    .insert(orders)
+    .values({
+      userId,
+      status: "paid",
+      currencyCode,
+      subtotalAmount: cart.cost.subtotalAmount.amount,
+      totalAmount: cart.cost.totalAmount.amount,
+    })
+    .returning();
+
+  if (!order) {
+    throw new Error("Failed to create order");
+  }
+
+  await db.insert(orderItems).values(
+    cart.lines.map((line) => {
+      const unitAmount = (
+        Number(line.cost.totalAmount.amount) / line.quantity
+      ).toFixed(2);
+
+      return {
+        orderId: order.id,
+        productId: line.merchandise.product.id,
+        variantId: line.merchandise.id,
+        productTitle: line.merchandise.product.title,
+        variantTitle: line.merchandise.title,
+        quantity: line.quantity,
+        unitAmount,
+        totalAmount: line.cost.totalAmount.amount,
+        currencyCode: line.cost.totalAmount.currencyCode,
+      };
+    }),
+  );
+
+  await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+  await db.update(carts).set({ userId }).where(eq(carts.id, cart.id));
+
+  const created = await getOrder(order.id, userId);
+  if (!created) {
+    throw new Error("Order not found after create");
+  }
+  return created;
+}
+
+export async function getOrders(userId: string): Promise<Order[]> {
+  const rows = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.userId, userId))
+    .orderBy(desc(orders.createdAt));
+
+  if (!rows.length) return [];
+
+  const items = await db
+    .select()
+    .from(orderItems)
+    .where(
+      inArray(
+        orderItems.orderId,
+        rows.map((row) => row.id),
+      ),
+    );
+
+  const itemsByOrder = new Map<string, typeof items>();
+  for (const item of items) {
+    const list = itemsByOrder.get(item.orderId) ?? [];
+    list.push(item);
+    itemsByOrder.set(item.orderId, list);
+  }
+
+  return rows.map((order) => ({
+    id: order.id,
+    userId: order.userId,
+    status: order.status as OrderStatus,
+    cost: {
+      subtotalAmount: money(order.subtotalAmount, order.currencyCode),
+      totalAmount: money(order.totalAmount, order.currencyCode),
+    },
+    items: (itemsByOrder.get(order.id) ?? []).map((item) => ({
+      id: item.id,
+      productId: item.productId,
+      variantId: item.variantId,
+      productTitle: item.productTitle,
+      variantTitle: item.variantTitle,
+      quantity: item.quantity,
+      unitAmount: money(item.unitAmount, item.currencyCode),
+      totalAmount: money(item.totalAmount, item.currencyCode),
+    })),
+    createdAt: order.createdAt.toISOString(),
+    updatedAt: order.updatedAt.toISOString(),
+  }));
+}
+
+export async function getOrder(
+  orderId: string,
+  userId: string,
+): Promise<Order | undefined> {
+  const [order] = await db
+    .select()
+    .from(orders)
+    .where(and(eq(orders.id, orderId), eq(orders.userId, userId)));
+
+  if (!order) return undefined;
+
+  const items = await db
+    .select()
+    .from(orderItems)
+    .where(eq(orderItems.orderId, order.id));
+
+  return {
+    id: order.id,
+    userId: order.userId,
+    status: order.status as OrderStatus,
+    cost: {
+      subtotalAmount: money(order.subtotalAmount, order.currencyCode),
+      totalAmount: money(order.totalAmount, order.currencyCode),
+    },
+    items: items.map((item) => ({
+      id: item.id,
+      productId: item.productId,
+      variantId: item.variantId,
+      productTitle: item.productTitle,
+      variantTitle: item.variantTitle,
+      quantity: item.quantity,
+      unitAmount: money(item.unitAmount, item.currencyCode),
+      totalAmount: money(item.totalAmount, item.currencyCode),
+    })),
+    createdAt: order.createdAt.toISOString(),
+    updatedAt: order.updatedAt.toISOString(),
+  };
 }
 
 export async function revalidate(req: NextRequest): Promise<NextResponse> {

@@ -112,3 +112,29 @@ export type Cart = {
   lines: CartItem[];
   totalQuantity: number;
 };
+
+export type OrderStatus = "pending" | "paid" | "cancelled";
+
+export type OrderItem = {
+  id: string;
+  productId: string;
+  variantId: string;
+  productTitle: string;
+  variantTitle: string;
+  quantity: number;
+  unitAmount: Money;
+  totalAmount: Money;
+};
+
+export type Order = {
+  id: string;
+  userId: string;
+  status: OrderStatus;
+  cost: {
+    subtotalAmount: Money;
+    totalAmount: Money;
+  };
+  items: OrderItem[];
+  createdAt: string;
+  updatedAt: string;
+};
