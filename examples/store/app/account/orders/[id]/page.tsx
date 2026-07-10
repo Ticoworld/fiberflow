@@ -55,13 +55,22 @@ async function OrderContent({ params }: { params: Promise<{ id: string }> }) {
         ))}
       </ul>
 
-      <div className="flex items-center justify-between text-lg font-semibold">
+      <div className="mb-8 flex items-center justify-between text-lg font-semibold">
         <span>Total</span>
         <Price
           amount={order.cost.totalAmount.amount}
           currencyCode={order.cost.totalAmount.currencyCode}
         />
       </div>
+
+      {order.status === "awaiting_payment" && order.paymentUrl ? (
+        <a
+          href={order.paymentUrl}
+          className="inline-flex rounded-full bg-blue-600 px-6 py-3 text-sm font-medium text-white"
+        >
+          Continue payment on FiberFlow
+        </a>
+      ) : null}
     </div>
   );
 }

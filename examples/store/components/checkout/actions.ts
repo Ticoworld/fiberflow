@@ -11,7 +11,17 @@ export async function placeOrder() {
     redirect("/sign-in?redirectTo=/checkout");
   }
 
-  const order = await createOrderFromCart(session.user.id);
+  const order = await createOrderFromCart({
+    userId: session.user.id,
+    customerEmail: session.user.email,
+    customerName: session.user.name,
+  });
+
   (await cookies()).delete("cartId");
-  redirect(`/account/orders/${order.id}`);
+
+  if (!order.paymentUrl) {
+    throw new Error("Missing FiberFlow payment URL");
+  }
+
+  redirect(order.paymentUrl);
 }

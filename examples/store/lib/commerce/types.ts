@@ -113,7 +113,12 @@ export type Cart = {
   totalQuantity: number;
 };
 
-export type OrderStatus = "pending" | "paid" | "cancelled";
+export type OrderStatus =
+  | "pending"
+  | "awaiting_payment"
+  | "paid"
+  | "cancelled"
+  | "expired";
 
 export type OrderItem = {
   id: string;
@@ -135,6 +140,10 @@ export type Order = {
     totalAmount: Money;
   };
   items: OrderItem[];
+  paymentUrl: string | null;
+  paymentHash: string | null;
+  fiberflowInvoiceId: number | null;
+  paidAt: string | null;
   createdAt: string;
   updatedAt: string;
 };

@@ -13,6 +13,7 @@ import {
   products,
   productVariants,
 } from "lib/db/schema";
+import { createFiberFlowInvoice } from "lib/fiberflow";
 import { baseUrl } from "lib/utils";
 import { cacheLife, cacheTag, revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
@@ -592,19 +593,24 @@ export async function getProducts({
   return sortProducts(productList, sortKey, reverse);
 }
 
-export async function createOrderFromCart(userId: string): Promise<Order> {
+export async function createOrderFromCart(input: {
+  userId: string;
+  customerEmail: string;
+  customerName?: string;
+}): Promise<Order> {
   const cart = await getCart();
   if (!cart?.id || cart.totalQuantity === 0) {
     throw new Error("Cart is empty");
   }
 
   const currencyCode = cart.cost.totalAmount.currencyCode;
+  const amountInUsd = Number(cart.cost.totalAmount.amount);
 
   const [order] = await db
     .insert(orders)
     .values({
-      userId,
-      status: "paid",
+      userId: input.userId,
+      status: "awaiting_payment",
       currencyCode,
       subtotalAmount: cart.cost.subtotalAmount.amount,
       totalAmount: cart.cost.totalAmount.amount,
@@ -635,14 +641,75 @@ export async function createOrderFromCart(userId: string): Promise<Order> {
     }),
   );
 
-  await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
-  await db.update(carts).set({ userId }).where(eq(carts.id, cart.id));
+  const invoice = await createFiberFlowInvoice({
+    amountInUsd,
+    orderId: order.id,
+    customerEmail: input.customerEmail,
+    description: `FiberFlow Store order ${order.id.slice(0, 8)}`,
+    successUrl: `${baseUrl}/checkout/success?order=${order.id}`,
+    cancelUrl: `${baseUrl}/checkout`,
+    metadata: {
+      user_id: input.userId,
+      ...(input.customerName ? { customer_name: input.customerName } : {}),
+    },
+  });
 
-  const created = await getOrder(order.id, userId);
+  if (!invoice.payment_url) {
+    throw new Error("FiberFlow invoice missing payment_url");
+  }
+
+  await db
+    .update(orders)
+    .set({
+      fiberflowInvoiceId: invoice.id,
+      fiberflowPaymentHash: invoice.payment_hash,
+      fiberflowPaymentUrl: invoice.payment_url,
+      fiberflowCurrency: invoice.currency,
+    })
+    .where(eq(orders.id, order.id));
+
+  await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
+  await db
+    .update(carts)
+    .set({ userId: input.userId })
+    .where(eq(carts.id, cart.id));
+
+  const created = await getOrder(order.id, input.userId);
   if (!created) {
     throw new Error("Order not found after create");
   }
   return created;
+}
+
+export async function markOrderPaid(orderId: string): Promise<Order | undefined> {
+  const [existing] = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.id, orderId));
+
+  if (!existing) return undefined;
+
+  if (existing.status !== "paid") {
+    await db
+      .update(orders)
+      .set({
+        status: "paid",
+        paidAt: new Date(),
+      })
+      .where(eq(orders.id, orderId));
+  }
+
+  return getOrderById(orderId);
+}
+
+export async function markOrderStatus(
+  orderId: string,
+  status: Extract<OrderStatus, "expired" | "cancelled">,
+): Promise<void> {
+  await db
+    .update(orders)
+    .set({ status })
+    .where(and(eq(orders.id, orderId), ne(orders.status, "paid")));
 }
 
 export async function getOrders(userId: string): Promise<Order[]> {
@@ -671,27 +738,7 @@ export async function getOrders(userId: string): Promise<Order[]> {
     itemsByOrder.set(item.orderId, list);
   }
 
-  return rows.map((order) => ({
-    id: order.id,
-    userId: order.userId,
-    status: order.status as OrderStatus,
-    cost: {
-      subtotalAmount: money(order.subtotalAmount, order.currencyCode),
-      totalAmount: money(order.totalAmount, order.currencyCode),
-    },
-    items: (itemsByOrder.get(order.id) ?? []).map((item) => ({
-      id: item.id,
-      productId: item.productId,
-      variantId: item.variantId,
-      productTitle: item.productTitle,
-      variantTitle: item.variantTitle,
-      quantity: item.quantity,
-      unitAmount: money(item.unitAmount, item.currencyCode),
-      totalAmount: money(item.totalAmount, item.currencyCode),
-    })),
-    createdAt: order.createdAt.toISOString(),
-    updatedAt: order.updatedAt.toISOString(),
-  }));
+  return rows.map((order) => reshapeOrder(order, itemsByOrder.get(order.id) ?? []));
 }
 
 export async function getOrder(
@@ -710,6 +757,25 @@ export async function getOrder(
     .from(orderItems)
     .where(eq(orderItems.orderId, order.id));
 
+  return reshapeOrder(order, items);
+}
+
+export async function getOrderById(orderId: string): Promise<Order | undefined> {
+  const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
+  if (!order) return undefined;
+
+  const items = await db
+    .select()
+    .from(orderItems)
+    .where(eq(orderItems.orderId, order.id));
+
+  return reshapeOrder(order, items);
+}
+
+function reshapeOrder(
+  order: typeof orders.$inferSelect,
+  items: (typeof orderItems.$inferSelect)[],
+): Order {
   return {
     id: order.id,
     userId: order.userId,
@@ -728,6 +794,10 @@ export async function getOrder(
       unitAmount: money(item.unitAmount, item.currencyCode),
       totalAmount: money(item.totalAmount, item.currencyCode),
     })),
+    paymentUrl: order.fiberflowPaymentUrl,
+    paymentHash: order.fiberflowPaymentHash,
+    fiberflowInvoiceId: order.fiberflowInvoiceId,
+    paidAt: order.paidAt?.toISOString() ?? null,
     createdAt: order.createdAt.toISOString(),
     updatedAt: order.updatedAt.toISOString(),
   };

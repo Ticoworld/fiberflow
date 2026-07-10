@@ -154,6 +154,11 @@ export const orders = pgTable("orders", {
     scale: 2,
   }).notNull(),
   totalAmount: numeric("total_amount", { precision: 12, scale: 2 }).notNull(),
+  fiberflowInvoiceId: integer("fiberflow_invoice_id"),
+  fiberflowPaymentHash: text("fiberflow_payment_hash"),
+  fiberflowPaymentUrl: text("fiberflow_payment_url"),
+  fiberflowCurrency: text("fiberflow_currency"),
+  paidAt: timestamp("paid_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

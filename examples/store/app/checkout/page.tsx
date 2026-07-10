@@ -23,8 +23,7 @@ async function CheckoutContent() {
     <div className="mx-auto max-w-2xl px-4 py-12">
       <h1 className="mb-2 text-3xl font-bold">Checkout</h1>
       <p className="mb-8 text-neutral-500 dark:text-neutral-400">
-        Review your cart and place an order. Payments can be wired to FiberFlow
-        invoices later.
+        Review your cart, then pay with FiberFlow on backr.site.
       </p>
 
       <ul className="mb-8 divide-y divide-neutral-200 border-y border-neutral-200 dark:divide-neutral-700 dark:border-neutral-700">
@@ -66,7 +65,7 @@ async function CheckoutContent() {
             href="/sign-in?redirectTo=/checkout"
             className="rounded-full bg-blue-600 px-6 py-3 text-sm font-medium text-white"
           >
-            Sign in to place order
+            Sign in to pay with FiberFlow
           </Link>
         )}
       </div>
