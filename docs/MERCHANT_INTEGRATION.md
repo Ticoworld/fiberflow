@@ -1,6 +1,6 @@
 # Connect your store
 
-Use FiberFlow like a checkout provider: create a payment, send the customer to pay, fulfill when you get a paid webhook.
+FiberFlow is merchant payment infrastructure for Fiber: create a payment, send the customer to a hosted checkout page, fulfill when you get a paid webhook.
 
 **You need from the FiberFlow dashboard**
 

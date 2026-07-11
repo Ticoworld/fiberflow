@@ -1,8 +1,8 @@
 # FiberFlow Store Example
 
-Next.js storefront backed by **Neon Postgres**, **Drizzle ORM**, and **FiberFlow** payments.
+Next.js storefront that shows how a merchant integrates **FiberFlow** payment infrastructure (Neon Postgres, Drizzle ORM, invoices + webhooks).
 
-**Live demo:** [fiberflow-eight.vercel.app](https://fiberflow-eight.vercel.app/) (already connected to [backr.site](https://backr.site/)). Register, add items, check out, and pay. Details: [See it in action](../../docs/MERCHANT_INTEGRATION.md#see-it-in-action-live-demo).
+**Live demo (for judges / testers):** [fiberflow-eight.vercel.app](https://fiberflow-eight.vercel.app/) — already connected to FiberFlow at [backr.site](https://backr.site/). Register, add items, check out, and pay. Details: [See it in action](../../docs/MERCHANT_INTEGRATION.md#see-it-in-action-live-demo).
 
 ## Setup
 

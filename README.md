@@ -1,22 +1,25 @@
 # FiberFlow
 
-Accept Fiber Network payments on your online store.
+Merchant payment infrastructure for Fiber Network.
 
-FiberFlow gives you a landing page, merchant dashboard, checkout page, API, and webhooks — similar to Stripe Checkout, but for Fiber on Nervos CKB. You run it yourself (with your own wallet key). Customers pay with any Fiber-compatible wallet.
+FiberFlow is the checkout layer stores plug into: landing page, merchant dashboard, hosted payment page, invoice API, and webhooks — similar to Stripe Checkout, but for Fiber on Nervos CKB. You run it yourself (with your own wallet key). Customers pay with any Fiber-compatible wallet.
 
-**In plain terms:** your customer checks out → FiberFlow shows them a payment page → they pay over Fiber → your store gets a webhook and you fulfill the order. You keep the keys; there is no hosted FiberFlow cloud.
+This is **infrastructure for merchants and developers**, not a consumer app. Other stores and products use FiberFlow to accept Fiber payments without rebuilding invoices, checkout, and settlement notifications from scratch.
+
+**In plain terms:** your customer checks out → FiberFlow shows them a payment page → they pay over Fiber → your store gets a webhook and you fulfill the order. You keep the keys; there is no hosted FiberFlow cloud that holds your funds.
 
 ---
 
-## Try the live demo
+## Try it now (no local install)
 
-The example store is already connected to a hosted FiberFlow instance.
+| Role | Live link | What to do |
+|------|-----------|------------|
+| Customer / store demo | [fiberflow-eight.vercel.app](https://fiberflow-eight.vercel.app/) | Register or sign in → add items → check out → pay on the FiberFlow payment page |
+| Merchant dashboard | [backr.site](https://backr.site/) | Sign up → create a store → explore invoices, API keys, and webhooks |
 
-1. Run a Fiber node on testnet ([Fiber Studio](https://github.com/chukwuma619/fiber-studio) recommended, or the [CLI](https://www.fiber.world/docs/quick-start/run-a-node)), connect to the demo peer, and open a channel — details in [MERCHANT_INTEGRATION.md](docs/MERCHANT_INTEGRATION.md#see-it-in-action-live-demo).
-2. Open the [demo store](https://fiberflow-eight.vercel.app/), register or sign in.
-3. Add item(s) to the cart, check out, and pay on the FiberFlow payment page.
+Both links are public and already connected. Full peer / channel steps for a real testnet payment: [See it in action](docs/MERCHANT_INTEGRATION.md#see-it-in-action-live-demo).
 
-To explore the merchant side, open [backr.site](https://backr.site/), sign up, and follow the dashboard steps in the same guide.
+To pay on testnet you need a Fiber node ([Fiber Studio](https://github.com/chukwuma619/fiber-studio) recommended, or the [CLI](https://www.fiber.world/docs/quick-start/run-a-node)), connected to the demo peer with an open channel.
 
 ---
 
