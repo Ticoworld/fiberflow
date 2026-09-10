@@ -3,6 +3,11 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 
 import * as schema from "../lib/db/schema";
+import {
+  PRIVATE_API_PRODUCT_HANDLE,
+  PRIVATE_API_PRODUCT_ID,
+  PRIVATE_API_PRODUCT_TITLE,
+} from "../lib/private-api-constants";
 
 config({ path: [".env.local", ".env"] });
 
@@ -148,6 +153,28 @@ async function seed() {
         },
       ],
     },
+    {
+      handle: PRIVATE_API_PRODUCT_HANDLE,
+      title: PRIVATE_API_PRODUCT_TITLE,
+      description: "Three bounded calls to the FiberFlow Store private API.",
+      descriptionHtml:
+        "<p>Three bounded calls to the FiberFlow Store private API after your Fiber payment is confirmed.</p>",
+      tags: ["digital", "fiberlatch", "featured"],
+      options: [{ name: "Title", values: ["Default Title"] }],
+      variants: [
+        {
+          title: "Default Title",
+          options: [{ name: "Title", value: "Default Title" }],
+          price: "1.00",
+        },
+      ],
+      images: [
+        {
+          url: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=1200&h=1200&fit=crop",
+          altText: PRIVATE_API_PRODUCT_TITLE,
+        },
+      ],
+    },
   ] as const;
 
   const insertedProducts = [];
@@ -156,6 +183,9 @@ async function seed() {
     const [product] = await db
       .insert(products)
       .values({
+        ...(item.handle === PRIVATE_API_PRODUCT_HANDLE
+          ? { id: PRIVATE_API_PRODUCT_ID }
+          : {}),
         handle: item.handle,
         title: item.title,
         description: item.description,
@@ -223,6 +253,7 @@ async function seed() {
         "lightning-mug",
         "node-tee",
         "channel-socks",
+        PRIVATE_API_PRODUCT_HANDLE,
       ],
     },
     {

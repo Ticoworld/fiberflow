@@ -6,19 +6,18 @@ Next.js storefront that shows how a merchant integrates **FiberFlow** payment in
 
 ## Setup
 
-1. Copy env vars:
-
-```bash
-cp .env.example .env.local
-```
+1. Create `.env.local` and add the environment variables below.
 
 2. Set:
 
 - `DATABASE_URL` — Neon connection string (pooled URL recommended)
+- Node.js `>=22.12.0` (required by `@fiberlatch/access@0.1.1`)
 - `BETTER_AUTH_SECRET` / `BETTER_AUTH_URL`
 - `FIBERFLOW_API_KEY` — from FiberFlow dashboard → Settings (`ffg_...`)
 - `FIBERFLOW_WEBHOOK_SECRET` — from FiberFlow dashboard → Webhooks (`whsec_...`)
 - `FIBERFLOW_API_URL` — defaults to `https://api.backr.site`
+- `FIBERLATCH_PRIVATE_JWK` / `FIBERLATCH_PUBLIC_JWK` — persistent Ed25519 JWKs for the server-only access receipt integration
+- `FIBERLATCH_ISSUER` / `FIBERLATCH_AUDIENCE` — stable receipt issuer and private API audience
 
 3. In the FiberFlow dashboard, add webhook URL:
 
@@ -46,6 +45,11 @@ Open [http://localhost:3000](http://localhost:3000).
 3. Customer is redirected to `payment_url` on backr.site
 4. FiberFlow sends `invoice.paid` to `/api/webhooks/fiberflow`
 5. Customer returns to `/checkout/success?order=...`
+6. A paid `Private API Access` order exposes a three-call private API demo on its order page.
+
+Generate a persistent Ed25519 key pair for local development with Node.js and
+place the JSON JWK values in the two FiberLatch environment variables. Do not
+commit either private key or use an ephemeral key in a persistent deployment.
 
 ## Scripts
 

@@ -2,6 +2,8 @@ import Footer from "components/layout/footer";
 import Price from "components/price";
 import { getOrder } from "lib/commerce";
 import { getSession } from "lib/session";
+import { isPrivateApiOrder } from "lib/private-api-access";
+import { PrivateApiDemo } from "./private-api-demo";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -70,6 +72,10 @@ async function OrderContent({ params }: { params: Promise<{ id: string }> }) {
         >
           Continue payment on FiberFlow
         </a>
+      ) : null}
+
+      {order.status === "paid" && isPrivateApiOrder(order) ? (
+        <PrivateApiDemo orderId={order.id} />
       ) : null}
     </div>
   );

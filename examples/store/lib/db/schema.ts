@@ -168,6 +168,45 @@ export const orders = pgTable("orders", {
     .$onUpdate(() => new Date()),
 });
 
+export const accessEntitlements = pgTable(
+  "access_entitlements",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    orderId: uuid("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    paymentRef: text("payment_ref").notNull(),
+    intentId: text("intent_id").notNull(),
+    resourceId: text("resource_id").notNull(),
+    policyId: text("policy_id").notNull(),
+    issuer: text("issuer").notNull(),
+    audience: text("audience").notNull(),
+    jti: text("jti").notNull(),
+    grantType: text("grant_type").notNull(),
+    issuedAt: integer("issued_at").notNull(),
+    notBefore: integer("not_before").notNull(),
+    expiresAt: integer("expires_at").notNull(),
+    maxRedemptions: integer("max_redemptions").notNull(),
+    redemptionCount: integer("redemption_count").notNull().default(0),
+    revoked: boolean("revoked").notNull().default(false),
+    exhausted: boolean("exhausted").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("access_entitlements_order_payment_resource_idx").on(
+      table.orderId,
+      table.paymentRef,
+      table.resourceId,
+    ),
+    uniqueIndex("access_entitlements_jti_idx").on(table.jti),
+  ],
+);
+
 export const orderItems = pgTable("order_items", {
   id: uuid("id").defaultRandom().primaryKey(),
   orderId: uuid("order_id")

@@ -7,6 +7,8 @@ import {
   type FiberFlowWebhookEvent,
   verifyFiberFlowWebhook,
 } from "lib/fiberflow";
+import { issuePrivateApiEntitlement, isPrivateApiOrder } from "lib/private-api-access";
+import { matchesPaidInvoiceForOrder } from "lib/private-api-policy";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -35,7 +37,21 @@ export async function POST(request: Request) {
 
   switch (payload.type) {
     case "invoice.paid":
-      await markOrderPaid(orderId);
+      if (!matchesPaidInvoiceForOrder(payload, order)) {
+        return Response.json({ error: "Payment does not match order" }, { status: 400 });
+      }
+      const paymentRef = payload.data.payment_hash;
+      if (typeof paymentRef !== "string") {
+        return Response.json({ error: "Payment reference is missing" }, { status: 400 });
+      }
+
+      const paidOrder = await markOrderPaid(orderId);
+      if (paidOrder && isPrivateApiOrder(paidOrder)) {
+        await issuePrivateApiEntitlement({
+          order: paidOrder,
+          paymentRef,
+        });
+      }
       break;
     case "invoice.expired":
       await markOrderStatus(orderId, "expired");
