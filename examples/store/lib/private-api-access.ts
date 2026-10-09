@@ -8,12 +8,12 @@ import {
   type AccessReceiptClaims,
   type AccessReceiptJwk,
   type AccessReceiptRedemptionResult,
-  type AccessReceiptStore,
 } from "@fiberlatch/access";
-import { and, eq, gt, lt, sql } from "drizzle-orm";
+import { createPostgresAccessReceiptStore } from "fiberlatch-postgres-store-internal";
+import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
-import { db } from "lib/db";
+import { db, queryAccessReceipt } from "lib/db";
 import { accessEntitlements } from "lib/db/schema";
 import type { Order } from "lib/commerce/types";
 
@@ -216,74 +216,7 @@ export async function getPrivateApiEntitlementForOrder(
   return entitlement;
 }
 
-async function consume(command: Parameters<AccessReceiptStore["consume"]>[0]) {
-  const [updated] = await db
-    .update(accessEntitlements)
-    .set({
-      redemptionCount: sql`${accessEntitlements.redemptionCount} + 1`,
-      exhausted: sql`${accessEntitlements.redemptionCount} + 1 >= ${accessEntitlements.maxRedemptions}`,
-    })
-    .where(
-      and(
-        eq(accessEntitlements.jti, command.jti),
-        eq(accessEntitlements.issuer, command.iss),
-        eq(accessEntitlements.userId, command.sub),
-        eq(accessEntitlements.audience, command.aud),
-        eq(accessEntitlements.intentId, command.intent_id),
-        eq(accessEntitlements.resourceId, command.resource_id),
-        eq(accessEntitlements.policyId, command.policy_id),
-        eq(accessEntitlements.grantType, command.grant_type),
-        eq(accessEntitlements.maxRedemptions, command.max_redemptions),
-        eq(accessEntitlements.expiresAt, command.exp),
-        eq(accessEntitlements.revoked, false),
-        eq(accessEntitlements.exhausted, false),
-        lt(accessEntitlements.redemptionCount, accessEntitlements.maxRedemptions),
-        gt(accessEntitlements.expiresAt, command.current_time),
-      ),
-    )
-    .returning({
-      redemptionCount: accessEntitlements.redemptionCount,
-      maxRedemptions: accessEntitlements.maxRedemptions,
-    });
-
-  if (updated) {
-    return {
-      outcome: "consumed" as const,
-      exhausted: updated.redemptionCount >= updated.maxRedemptions,
-    };
-  }
-
-  const [existing] = await db
-    .select()
-    .from(accessEntitlements)
-    .where(eq(accessEntitlements.jti, command.jti));
-
-  if (!existing) return { outcome: "receipt_missing" as const };
-
-  if (
-    existing.issuer !== command.iss ||
-    existing.userId !== command.sub ||
-    existing.audience !== command.aud ||
-    existing.intentId !== command.intent_id ||
-    existing.resourceId !== command.resource_id ||
-    existing.policyId !== command.policy_id ||
-    existing.grantType !== command.grant_type ||
-    existing.maxRedemptions !== command.max_redemptions ||
-    existing.expiresAt !== command.exp
-  ) {
-    return { outcome: "authority_mismatch" as const };
-  }
-
-  if (existing.revoked) return { outcome: "receipt_revoked" as const };
-  if (command.current_time >= existing.expiresAt) {
-    return { outcome: "receipt_expired" as const };
-  }
-  if (existing.exhausted || existing.redemptionCount >= existing.maxRedemptions) {
-    return { outcome: "receipt_exhausted" as const };
-  }
-
-  return { outcome: "concurrency_conflict" as const };
-}
+const store = createPostgresAccessReceiptStore(queryAccessReceipt);
 
 export async function redeemPrivateApiReceiptForOrder(input: {
   token: string;
@@ -316,7 +249,6 @@ export async function redeemPrivateApiReceiptForOrder(input: {
     return { status: "binding_denied", phase: "binding" };
   }
 
-  const store: AccessReceiptStore = { consume };
   return redeemAccessReceipt({
     token: input.token,
     expected: {

@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "..",
+    "paths": {
+      "@/*": ["./*"],
+      "lib/*": ["./lib/*"],
+      "server-only": ["./node_modules/next/dist/compiled/server-only/empty.js"]
+    }
+  }
+}

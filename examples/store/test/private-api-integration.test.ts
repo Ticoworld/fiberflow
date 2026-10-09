@@ -330,7 +330,9 @@ test("wrong audience and tampered receipts are denied", async () => {
     audience: "another-api",
   });
   const wrongAudience = await redeem(token, claims, wrongAudienceVerifier, store);
-  const tampered = await redeem(`${token.slice(0, -1)}x`, claims, verifier, store);
+  const parts = token.split(".");
+  parts[2] = (parts[2]![0] === "A" ? "B" : "A") + parts[2]!.slice(1);
+  const tampered = await redeem(parts.join("."), claims, verifier, store);
 
   assert.equal(wrongAudience.status, "verification_denied");
   assert.equal(tampered.status, "verification_denied");
