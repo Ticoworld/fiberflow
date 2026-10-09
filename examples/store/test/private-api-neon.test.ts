@@ -3,7 +3,7 @@ import { before, test } from "node:test";
 import { randomUUID, webcrypto } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
 import { createAccessReceiptSigner, createAccessReceiptVerifier, type AccessReceiptClaims } from "@fiberlatch/access";
-import { createPostgresAccessReceiptStore } from "fiberlatch-postgres-store-internal";
+import { createPostgresAccessReceiptStore } from "@fiberlatch/postgres-store";
 import { PRIVATE_API_PRODUCT_ID, PRIVATE_API_PRODUCT_TITLE } from "../lib/private-api-constants";
 
 assert.equal(process.env.FIBERFLOW_FRESH_STORE_ACCEPTANCE, "1", "Run only through npm run test:postgres-store");

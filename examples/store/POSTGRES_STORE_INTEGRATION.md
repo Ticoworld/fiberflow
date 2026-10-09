@@ -1,6 +1,10 @@
 # FiberFlow reusable PostgreSQL store integration proof
 
-Proof and verification: October 8, 2026. Local freeze: October 9, 2026.
+Sections A–O and the freeze section record the original integration proof;
+section C reflects the current public dependency. The final section records
+the public-package recheck.
+
+Proof and verification: October 8, 2026. Local freeze and public-package adoption: October 9, 2026.
 
 ## A. Reference app freeze commit
 
@@ -16,38 +20,34 @@ after the commit. No merge; no subsequent reference-app work.
 `96a96e26c7c3aeac9fcef486073586f88c3c6986`. Frozen locally on October 9, 2026
 with commit message `feat: use reusable FiberLatch PostgreSQL store`.
 
-## C. Local package link method
+Public-package adoption starts from that frozen commit,
+`b8b87d81c3dc4efef0937be5ea9c87d0d8f924e2`, on
+`chore/use-published-fiberlatch-postgres-store`.
 
-Private `npm pack` archive of `fiberlatch-postgres-store-internal@0.0.0-development`
-from FiberLatch's proven `fdc5177` plus packaging-only `5897d30`.
-Archive: `.test-data/local-packages/fiberlatch-postgres-store-internal-0.0.0-development.tgz`.
-The example's package manifest and Bun lock point to this local archive.
-Its SHA-1 is `0635f9c231f2d80fb13c11cb1f1526c1ea6c752e`, identical to the
-reference proof archive; Bun records SHA-512 integrity. It contains six files:
-compiled JS/types, manifest, schema SQL, README, and ACCEPTANCE. Installed JS
-and types were verified byte-for-byte against the compiled proven component.
-The importer resolves to the regular installed package, not copied source.
+## C. Public npm dependency
 
-From `examples/store`, prepare the ignored archive before installing:
+The example now installs `@fiberlatch/postgres-store@0.1.0` from the public npm
+registry, with `@fiberlatch/access` still pinned to `0.1.1`. The manifest and Bun
+lock no longer depend on a private archive or local FiberLatch source checkout.
+Only the two store import specifiers changed; consumption semantics are unchanged.
+The public package's compiled JavaScript and declarations are byte-for-byte
+identical to the installed internal package used for the frozen proof.
+
+From `examples/store`, install and run the existing checks:
 
 ```powershell
-npm --prefix ../../../fiber-latch run build --workspace fiberlatch-postgres-store-internal
-$archiveDirectory = Join-Path (Get-Location) '.test-data/local-packages'
-New-Item -ItemType Directory -Force -Path $archiveDirectory | Out-Null
-npm --prefix ../../../fiber-latch pack --workspace fiberlatch-postgres-store-internal --pack-destination $archiveDirectory
 bun install --frozen-lockfile --ignore-scripts
-npm test
-npm run test:postgres-store
-node node_modules/typescript/bin/tsc --noEmit
+bun run test
+bun x --no-install tsc --noEmit
 ```
 
-Initial package linking used `bun add --ignore-scripts` with the archive path.
-This requires the sibling FiberLatch repo and local pack preparation. It is a
-temporary proof dependency, not a published or deployment-ready arrangement.
-Existing dependency lock entries remain unchanged; Bun added `configVersion: 0`.
-An initial npm installation caused a local esbuild version mismatch. Reinstalling
-from the frozen Bun lock restored the original dependency versions before the
-successful validation; no dependency upgrades are included in the diff.
+The original frozen proof used a private local archive because the companion
+had not yet been published. That historical dependency is no longer required.
+The application needs only public npm packages and host-owned configuration.
+The scoped real-database test runner remains a local proof tool:
+`bun run test:postgres-store` intentionally loads the existing dedicated Neon test URL
+from the sibling FiberLatch `.env.local`, as described in section I. This is
+test-environment setup, not a runtime/package dependency or general install step.
 
 ## D. Query executor bridge
 
@@ -265,3 +265,51 @@ deployment, or live settlement action was performed. Further work waits for PM
 approval.
 
 Freeze verdict: **PASS — FIBERFLOW POSTGRES STORE INTEGRATION FROZEN**.
+
+## Public npm consumer verification (October 9, 2026)
+
+Replaced the private dependency with exact public `@fiberlatch/postgres-store@0.1.0`.
+Bun resolved it from `https://registry.npmjs.org/`, then reinstalled 421 packages
+using `bun install --frozen-lockfile --ignore-scripts --force` with that registry.
+No other lockfile dependency versions changed; access remains `0.1.1`.
+The recorded store integrity matches npm:
+`sha512-dNyGe7h2T6oG5nsfLmyl/0LP8+kF5wGl7KK5mTTLB8UKBIckjdDwTpGSxmANzdyxIrQnkMJubkw8TpZ1Tj0iyg==`.
+
+Installed ESM and CommonJS imports resolve the public package from this example's
+regular `node_modules`. Its compiled JavaScript and declarations match the
+previously installed proven component byte-for-byte (SHA-256 respectively
+`5d7fef232f0ccf6d0de86f7b5949bedc127b79191c8eb15490916648a5f649b7` and
+`9c55ff400e2185e010c6ffe96bd05e31f08e20bee5ec7dceec8fcf01661ed6a0`).
+TypeScript resolves the public declarations and existing access contract.
+
+| Check | Result |
+| --- | --- |
+| Existing integration suite (`bun run test`) | 12/12 PASS; tests unchanged |
+| Full typecheck (`bun x --no-install tsc --noEmit`) | PASS |
+| Real Neon (`bun run test:postgres-store`) | 9/9 PASS with the public installed store |
+| Final-slot concurrency | 24 contenders: 1 success, 23 receipt_exhausted; final 3/3; all observed counts <=3 |
+| Direct count-4 write | Rejected by the existing CHECK constraint; count stays 3 |
+| Production build | PASS; 31/31 pages, using the existing ignored scoped build verifier and catalog seed |
+| Full lint (`bun run lint`) | Same 9 baseline errors and 4 warnings; zero new diagnostics |
+| Database cleanup after tests and build | PASS; standalone table and all original rows restored unchanged |
+| Implementation comparison with b8b87d8 | Only the application/test import names changed; bridge, SQL mapping, verifier, and assertions unchanged |
+
+Only five files changed: `package.json`, `bun.lock`, this report, and the two
+store import specifiers in `lib/private-api-access.ts` and
+`test/private-api-neon.test.ts`. No custom consumption SQL, shadow counter,
+framework abstraction, FiberFlow core change, or local package dependency was added.
+No active archive/file/workspace dependency or stale archive setup instruction
+remains. Ignored historical archives and unrelated user files were left alone.
+
+The dedicated Neon runner and existing ignored build verifier still load the
+test URL from the sibling FiberLatch environment, deliberately bypassing old
+FiberFlow/ambient database URLs. That is the remaining local test-environment
+assumption; installing and running the integration does not require FiberLatch
+source or its private archive. No credentials were printed or committed.
+The pre-existing Next.js multiple-lockfile warning remains unchanged.
+
+Commit message: `chore: use published FiberLatch postgres store`.
+This branch is for the user fork only; no upstream PR, maintainer contact,
+merge, deployment, npm publication, or live settlement work.
+
+**PASS — FIBERFLOW NOW CONSUMES THE PUBLIC FIBERLATCH POSTGRES STORE**.

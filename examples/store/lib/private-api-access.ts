@@ -9,7 +9,7 @@ import {
   type AccessReceiptJwk,
   type AccessReceiptRedemptionResult,
 } from "@fiberlatch/access";
-import { createPostgresAccessReceiptStore } from "fiberlatch-postgres-store-internal";
+import { createPostgresAccessReceiptStore } from "@fiberlatch/postgres-store";
 import { and, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 
